@@ -1,0 +1,217 @@
+{
+  "version": 1,
+  "integration": {
+    "subscriptions": [
+      {
+        "event": "channel.archived"
+      },
+      {
+        "event": "channel.created"
+      },
+      {
+        "event": "channel.disabled"
+      },
+      {
+        "event": "channel.enabled"
+      },
+      {
+        "event": "channel.manifest.abandoned"
+      },
+      {
+        "event": "channel.manifest.activated"
+      },
+      {
+        "event": "channel.manifest.ready"
+      },
+      {
+        "event": "channel.manifest.served"
+      },
+      {
+        "event": "channel.updated"
+      },
+      {
+        "event": "content.entry.created"
+      },
+      {
+        "event": "content.entry.deleted"
+      },
+      {
+        "event": "content.entry.published"
+      },
+      {
+        "event": "content.entry.unpublished"
+      },
+      {
+        "event": "content.entry.updated"
+      },
+      {
+        "event": "content.schema.synced"
+      },
+      {
+        "event": "files.file.deleted"
+      },
+      {
+        "event": "files.file.held"
+      },
+      {
+        "event": "files.file.purged"
+      },
+      {
+        "event": "files.file.quarantined"
+      },
+      {
+        "event": "files.file.ready"
+      },
+      {
+        "event": "files.file.release-requested"
+      },
+      {
+        "event": "files.file.updated"
+      },
+      {
+        "event": "files.gallery.deleted"
+      },
+      {
+        "event": "files.gallery.showing-changed"
+      },
+      {
+        "event": "files.gallery.updated"
+      },
+      {
+        "event": "identity.account.deleted"
+      },
+      {
+        "event": "identity.grant.ended"
+      },
+      {
+        "event": "identity.grant.issued"
+      },
+      {
+        "event": "identity.grant.used"
+      },
+      {
+        "event": "identity.logout"
+      },
+      {
+        "event": "identity.mfa.challenge.failed"
+      },
+      {
+        "event": "identity.mfa.challenge.succeeded"
+      },
+      {
+        "event": "identity.mfa.enrolled"
+      },
+      {
+        "event": "identity.mfa.removed"
+      },
+      {
+        "event": "identity.passkey.counter-regression"
+      },
+      {
+        "event": "identity.passkey.registered"
+      },
+      {
+        "event": "identity.passkey.removed"
+      },
+      {
+        "event": "identity.password.reset"
+      },
+      {
+        "event": "identity.password.reset-requested"
+      },
+      {
+        "event": "identity.platform.account_deleted"
+      },
+      {
+        "event": "identity.platform.account_restored"
+      },
+      {
+        "event": "identity.platform.account_suspended"
+      },
+      {
+        "event": "identity.platform.instance_enrolled"
+      },
+      {
+        "event": "identity.platform.instance_enrollment_created"
+      },
+      {
+        "event": "identity.platform.instance_revoked"
+      },
+      {
+        "event": "identity.platform.organization_read"
+      },
+      {
+        "event": "identity.platform.organizations_listed"
+      },
+      {
+        "event": "identity.recovery-code.regenerated"
+      },
+      {
+        "event": "identity.session.created"
+      },
+      {
+        "event": "identity.session.revoked"
+      },
+      {
+        "event": "identity.token.refreshed"
+      },
+      {
+        "event": "identity.token.replay-detected"
+      },
+      {
+        "event": "notifications.inbox.requested"
+      },
+      {
+        "event": "notifications.requested"
+      },
+      {
+        "event": "pages.paths.changed"
+      },
+      {
+        "event": "pages.paths.rebuilt"
+      },
+      {
+        "event": "publishing.archived"
+      },
+      {
+        "event": "publishing.forgotten"
+      },
+      {
+        "event": "publishing.published"
+      },
+      {
+        "event": "publishing.restore-draft.requested"
+      },
+      {
+        "event": "publishing.review.rejected"
+      },
+      {
+        "event": "publishing.review.requested"
+      },
+      {
+        "event": "publishing.unpublished"
+      },
+      {
+        "event": "seo.address.changed"
+      },
+      {
+        "event": "seo.manifest.applied"
+      },
+      {
+        "event": "seo.purge.requested"
+      },
+      {
+        "event": "seo.redirect.created"
+      },
+      {
+        "event": "seo.redirect.deleted"
+      },
+      {
+        "event": "seo.redirect.updated"
+      },
+      {
+        "event": "seo.settings.updated"
+      }
+    ]
+  }
+}
