@@ -1,0 +1,65 @@
+{
+  "description": "The seats that a Worker of the split topology (INFERATIVE_WORKERS) reads and that no module of that Worker fills. Without a filling module, the reader of a seat uses its fallback and the work does not happen. The split build fails on such a seat that this file does not name. 'remote' names the Worker that fills the seat; 'accepted' says why the fallback is safe.",
+  "workers": {
+    "dashboard": {
+      "MemoryPacketPartsSeat": {
+        "kind": "accepted",
+        "reason": "The starter composes no memory package, in one Worker or in two. The agents run without memory packets."
+      },
+      "MemoryUseSeat": {
+        "kind": "accepted",
+        "reason": "The starter composes no memory package, in one Worker or in two. The agents and the projects record no memory use."
+      },
+      "SignedAccessIssuerSeat": {
+        "kind": "accepted",
+        "reason": "No package of the starter fills this seat, in one Worker or in two. The base's own issuer signs the links."
+      }
+    },
+    "visual-editing": {
+      "AggregateReadAuthenticatorSeat": {
+        "kind": "accepted",
+        "reason": "Only the aggregate-read token of an alert run resolves through it. The alerts run in the dashboard Worker and read its routes in process, so no such token reaches this Worker, and here it resolves nobody."
+      },
+      "ChannelResolverSeat": {
+        "kind": "accepted",
+        "reason": "The routes of the visual editor read it to start a session and to address its frame. This Worker composes no channels package, so a start answers that the channel is unavailable and no session starts unscoped. The reads of the sessions do not read it."
+      },
+      "EntityPathResolverSeat": {
+        "kind": "accepted",
+        "reason": "Only the session start and the target read of the visual editor read it, for the address of the frame. The address is advisory: the frame falls back to the preview root of the channel."
+      },
+      "InboxItemsSeat": {
+        "kind": "accepted",
+        "reason": "The model proxy routes and schedules of the base read it. A route of the hostname sends only /api/visual-editing/* here, and the dashboard calls only the contract of the visual editor over its binding. The dashboard Worker runs the same schedule ticks with the seat filled (#2629)."
+      },
+      "InternalChannelResolverSeat": {
+        "kind": "accepted",
+        "reason": "Only the channel frame of the site gate reads it, and no route of this Worker calls that read."
+      },
+      "ModelProxyAuditSeat": {
+        "kind": "accepted",
+        "reason": "Only the model proxy routes of the base read it, and no request reaches them here. A route of the hostname sends only /api/visual-editing/* here, and the dashboard calls only the contract of the visual editor over its binding."
+      },
+      "PublicationReaderSeat": {
+        "kind": "accepted",
+        "reason": "Only the target read of the visual editor reads it, for the publication status. Its null object answers that publishing is not composed, so the editor hides Publish and History."
+      },
+      "RealtimeBroadcasterSeat": {
+        "kind": "accepted",
+        "reason": "The routes of this Worker and the commands that they send read it. Its null object sends no live update: a second editor sees a change on its next read."
+      },
+      "RunStandingSeat": {
+        "kind": "accepted",
+        "reason": "Only the dispatch of an agent run reads it. An agent run calls the routes of the dashboard Worker in process, never this Worker, so no request here is a run's."
+      },
+      "SharedPreviewLinksSeat": {
+        "kind": "accepted",
+        "reason": "Only the session start of the visual editor reads it, through the signed access issuer, and a start does not succeed in this Worker (ChannelResolverSeat)."
+      },
+      "SignedAccessIssuerSeat": {
+        "kind": "accepted",
+        "reason": "No package of the starter fills this seat, in one Worker or in two. The base's own issuer signs the links, with the key ring that both Workers share."
+      }
+    }
+  }
+}

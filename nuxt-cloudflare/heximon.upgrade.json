@@ -3,6 +3,9 @@
   "integration": {
     "subscriptions": [
       {
+        "event": "access.lost"
+      },
+      {
         "event": "channel.archived"
       },
       {

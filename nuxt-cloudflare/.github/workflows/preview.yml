@@ -47,12 +47,15 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
-      - run: pnpm build
+      # Heximon writes one Worker for each build. `CLOUDFLARE_ENV=preview` makes this build the preview Worker.
+      - run: pnpm build:preview
 
       # The preview Worker binds the response cache of the live Worker, so the live Worker must exist first.
+      # The config of this build is the preview Worker, so the check names the live Worker (`topLevelName`).
       - name: Check that the live Worker exists
         run: |
-          if ! output=$(pnpm exec wrangler deployments list --config .output/server/wrangler.json 2>&1); then
+          live=$(node -p "require('./.output/server/wrangler.json').topLevelName")
+          if ! output=$(pnpm exec wrangler deployments list --config .output/server/wrangler.json --name "$live" 2>&1); then
             echo "$output"
             echo "::error::The live Worker is not deployed yet. The preview Worker uses its response cache. Run the Release workflow once (publish a release, or start it by hand), then run this workflow again."
             exit 1
