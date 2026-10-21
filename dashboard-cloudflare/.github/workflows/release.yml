@@ -1,0 +1,105 @@
+# A published release runs the migrations and deploys the Worker. A manual run does the same. The repository variable
+# `INFERATIVE_WORKERS` picks the Worker topology: unset, one Worker; `visual-editing`, `applets` or both, the dashboard
+# Worker and a Worker for each part that it names (README, "One Worker or more"). The Worker of the visual editor shares
+# the hostname in the variable `INFERATIVE_HOSTNAME`; the Worker of the applets has no route.
+name: Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+# One group keeps two deploys, and their migrations, apart.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Migrate and deploy the Worker
+    runs-on: ubuntu-latest
+    env:
+      INFERATIVE_WORKERS: ${{ vars.INFERATIVE_WORKERS }}
+      INFERATIVE_HOSTNAME: ${{ vars.INFERATIVE_HOSTNAME }}
+    steps:
+      - uses: actions/checkout@v7
+
+      # `@inferative` and `@heximon` come from GitHub Packages. The organization secret holds the read token.
+      - name: Point the private scopes at GitHub Packages
+        run: |
+          {
+            echo "@inferative:registry=https://npm.pkg.github.com"
+            echo "@heximon:registry=https://npm.pkg.github.com"
+            echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}"
+          } >> "$HOME/.npmrc"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.READ_PACKAGES_TOKEN }}
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # The migrations run over the direct connection, before the new code goes live.
+      - name: Run the migrations
+        run: pnpm db:migrate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - run: pnpm build
+
+      - name: Build the Worker of the visual editor
+        if: contains(vars.INFERATIVE_WORKERS, 'visual-editing')
+        run: pnpm build:visual-editing
+
+      - name: Build the Worker of the applets
+        if: contains(vars.INFERATIVE_WORKERS, 'applets')
+        run: pnpm build:applets
+
+      # It goes first: it drains the queue that the dashboard Worker sends to, and the dashboard Worker binds it. It binds
+      # the StorageRoom of the dashboard Worker, so the dashboard deploys once as one Worker before the first split deploy.
+      - name: Deploy the Worker of the visual editor
+        if: contains(vars.INFERATIVE_WORKERS, 'visual-editing')
+        run: pnpm run deploy:visual-editing
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      # A change of `INFERATIVE_WORKERS` that moves the applets moves their Durable Objects, with their storage, to the
+      # Worker that the setting names: the target Worker declares the class `expecting-transfer`, then the source Worker
+      # declares the `transferred` tombstone (README, "Switch a deployed dashboard"). It deploys the builds above, so it
+      # runs after the Worker of the visual editor, which a dashboard deploy binds. With no switch it deploys nothing.
+      - name: Move the Durable Objects of a part to the Worker that the setting names
+        run: pnpm run transfer:durable-objects
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      # It goes before the dashboard Worker, which binds its applet supervisor by name.
+      - name: Deploy the Worker of the applets
+        if: contains(vars.INFERATIVE_WORKERS, 'applets')
+        run: pnpm run deploy:applets
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - name: Deploy the Worker
+        run: pnpm run deploy:live
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      # After a return to one Worker, the route of the visual editor still sends its paths to the old Worker: detach it.
+      # With INFERATIVE_HOSTNAME unset no split deploy shared a hostname, and the step does nothing.
+      - name: Detach the routes of a part that the dashboard Worker serves again
+        run: pnpm run detach:routes
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

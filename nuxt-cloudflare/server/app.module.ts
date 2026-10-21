@@ -5,7 +5,9 @@ import {
   CloudflareRateLimitInfrastructure,
   CloudflareStorageInfrastructure
 } from "@inferative/base/infrastructure/cloudflare";
+import { RenderFrameFallthrough } from "@inferative/base/render";
 import { BaseModule } from "@inferative/base/server";
+import { TenantSeed } from "@inferative/base/tenant";
 import { ChannelVaryHeaderContributor } from "@inferative/channels/administration";
 import { ChannelHttpCachePolicy, ChannelsModule } from "@inferative/channels/server";
 import { ContentModule, ContentPublishableSourcesModule } from "@inferative/content/server";
@@ -23,13 +25,17 @@ import { FilesModule } from "@inferative/files/server";
 import {
   IdentityActorsModule,
   IdentityDiscoveryModule,
-  IdentityModule
+  IdentityModule,
+  RenderSessionMiddleware
 } from "@inferative/identity/server";
 import { NotificationsModule } from "@inferative/notifications/server";
 import { PagesModule } from "@inferative/pages/server";
 import { PublishingModule } from "@inferative/publishing/server";
 import { SearchModule } from "@inferative/search/server";
 import { SeoModule } from "@inferative/seo/server";
+import { LocalizationConfig } from "@inferative/base/config";
+import { LocaleNegotiationFallthrough } from "@inferative/localization/server";
+import { SitePageFallthrough } from "@inferative/site/render";
 import { SiteModule } from "@inferative/site/server";
 import { VisualEditingModule } from "@inferative/visual-editing/server";
 import { IdentityHostModule, WorkspaceModule } from "@inferative/workspace/server";
@@ -42,6 +48,8 @@ import { PersistenceModule } from "./persistence/pg/persistence.module";
  * values. The agent that sets up the site owns this list.
  */
 export class AppModule extends Module({
+  // The languages a page render is negotiated in. No module of this site lists the section, so the root does.
+  config: { localization: LocalizationConfig },
   imports: [
     PersistenceModule,
     BaseModule,
@@ -72,9 +80,31 @@ export class AppModule extends Module({
     ContentPagesJointModule,
     ContentPublishingJointModule
   ],
-  http: { headers: [ChannelVaryHeaderContributor] },
+  http: {
+    headers: [ChannelVaryHeaderContributor]
+  },
   app: {
+    // The API that the Vue app calls (`INFERATIVE_API_*`) and the locale facts (`INFERATIVE_LOCALIZATION_*`): the
+    // server render and the browser read one value.
+    config: { public: ["api", "localization"] },
     cqrs: { autoTransaction: Database },
-    http: { cache: ChannelHttpCachePolicy }
+    // A single-message handler runs in the tenant of its event: one seed stores it in the message frame, for every channel.
+    context: {
+      seeds: [TenantSeed]
+    },
+    http: {
+      // A page render starts in the negotiated locale and from the visitor's session (`useAuth`). The render scope
+      // opens first, so the session read already goes through the memo of the render. The site's page lane runs
+      // last: its Markdown answer reads the session, and its redirect lookup reads the locale.
+      fallthrough: [
+        RenderFrameFallthrough,
+        LocaleNegotiationFallthrough,
+        RenderSessionMiddleware,
+        SitePageFallthrough
+      ],
+      // A request under the API mount that no route serves answers a problem document, never a page.
+      owns: ["/api"],
+      cache: ChannelHttpCachePolicy
+    }
   }
 }) {}
