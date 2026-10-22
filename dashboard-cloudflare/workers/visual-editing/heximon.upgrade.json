@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "integration": {
+    "subscriptions": [
+      {
+        "event": "channel.archived"
+      },
+      {
+        "event": "channel.disabled"
+      },
+      {
+        "event": "identity.account.deleted"
+      },
+      {
+        "event": "identity.grant.ended"
+      },
+      {
+        "event": "identity.grant.issued"
+      },
+      {
+        "event": "identity.grant.used"
+      },
+      {
+        "event": "identity.logout"
+      },
+      {
+        "event": "identity.mfa.challenge.failed"
+      },
+      {
+        "event": "identity.mfa.challenge.succeeded"
+      },
+      {
+        "event": "identity.mfa.enrolled"
+      },
+      {
+        "event": "identity.mfa.removed"
+      },
+      {
+        "event": "identity.passkey.counter-regression"
+      },
+      {
+        "event": "identity.passkey.registered"
+      },
+      {
+        "event": "identity.passkey.removed"
+      },
+      {
+        "event": "identity.password.reset"
+      },
+      {
+        "event": "identity.password.reset-requested"
+      },
+      {
+        "event": "identity.platform.account_deleted"
+      },
+      {
+        "event": "identity.platform.account_restored"
+      },
+      {
+        "event": "identity.platform.account_suspended"
+      },
+      {
+        "event": "identity.platform.instance_enrolled"
+      },
+      {
+        "event": "identity.platform.instance_enrollment_created"
+      },
+      {
+        "event": "identity.platform.instance_revoked"
+      },
+      {
+        "event": "identity.platform.organization_read"
+      },
+      {
+        "event": "identity.platform.organizations_listed"
+      },
+      {
+        "event": "identity.recovery-code.regenerated"
+      },
+      {
+        "event": "identity.session.created"
+      },
+      {
+        "event": "identity.session.revoked"
+      },
+      {
+        "event": "identity.token.refreshed"
+      },
+      {
+        "event": "identity.token.replay-detected"
+      }
+    ]
+  }
+}

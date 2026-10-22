@@ -48,6 +48,9 @@ export default defineRuntimeConfig({
   // Durable Object that every isolate reaches. `nuxt dev` keeps process memory.
   $production: { base: { storage: { driver: "durable-object" } } },
 
+  // A local run can use its own address for a channel instead of the stored one, for a website on its own dev
+  // server. Add `addressOverrides: { <channel slug>: { preview: "http://localhost:3001" } }` to the channels
+  // section below, or set `INFERATIVE_CHANNELS_ADDRESS_OVERRIDES` (JSON) in `.env`. The channel row stays as it is.
   $development: {
     channels: { previewCheckAllowPrivate: true }
   }

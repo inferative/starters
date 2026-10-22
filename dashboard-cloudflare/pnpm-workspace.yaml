@@ -1,0 +1,134 @@
+# The hosts of the deployment: the dashboard at the root, and the hosts of the split topology under `workers/`. The
+# Heximon build reads this list to find which events each host subscribes to.
+packages:
+  - "."
+  - "workers/*"
+
+# `pnpm add` at the root adds to the dashboard, as in a project with one package.
+ignoreWorkspaceRootCheck: true
+
+# The settings that a Nuxt + Nitro install needs. pnpm reads them from this file only (a project `.npmrc` is ignored).
+
+# Nuxt and Nitro resolve bare imports from the app root, so the flat install is required: `nuxt dev` fails without it.
+shamefullyHoist: true
+strictPeerDependencies: false
+dedupePeers: true
+
+# Nitro and Nuxt Fonts come from preview builds (the overrides below), and a preview build is a URL dependency.
+blockExoticSubdeps: false
+
+# The compiler's oxc binding for the Workers runtime targets wasm32, so an install accepts it beside the host CPU.
+supportedArchitectures:
+  cpu:
+    - current
+    - wasm32
+
+# pnpm runs no dependency install script until you decide it here. An undecided script stops the install.
+allowBuilds:
+  esbuild: true
+  oxc-resolver: true
+  # The local Cloudflare runtime of `wrangler`.
+  workerd: true
+  better-sqlite3: false
+  protobufjs: false
+  vue-demi: false
+  "@parcel/watcher": false
+
+# One copy of each package that Nuxt, Nitro and the Heximon packages share. A second copy splits the DI tokens and
+# the Nuxt contexts. These pins follow the monorepo of Inferative: change them only when it changes them.
+overrides:
+  "@nuxt/cli": "npm:@nuxt/cli-nightly@^4.0.0-20260907-104727-9e18028"
+  "@nuxt/icon": "^2.5.1"
+  "@nuxt/fonts": "https://pkg.pr.new/@nuxt/fonts@2e62d6f"
+  srvx: "^1.0.4"
+  nitro: "https://pkg.pr.new/nitro@a546ce5"
+  "@cloudflare/workers-types": "^5.20260908.1"
+  miniflare: "5.20260907.0-alpha"
+  "@nuxt/kit": "npm:@nuxt/kit-nightly@^5.0.0-29814535.1ceb443f"
+  "@nuxt/schema": "npm:@nuxt/schema-nightly@^5.0.0-29814535.1ceb443f"
+  "@emnapi/core": "^1.11.3"
+  "@emnapi/runtime": "^1.11.3"
+  "@emnapi/wasi-threads": "^1.2.3"
+  ai: "^7.0.127"
+  heximon: "0.15.0"
+  "@heximon/ai": "0.15.0"
+  "@heximon/asyncapi": "0.15.0"
+  "@heximon/auth": "0.15.0"
+  "@heximon/aws": "0.15.0"
+  "@heximon/blob": "0.15.0"
+  "@heximon/build": "0.15.0"
+  "@heximon/cache": "0.15.0"
+  "@heximon/client": "0.15.0"
+  "@heximon/cloudflare": "0.15.0"
+  "@heximon/compiler": "0.15.0"
+  "@heximon/contract": "0.15.0"
+  "@heximon/cqrs": "0.15.0"
+  "@heximon/deno": "0.15.0"
+  "@heximon/deploy": "0.15.0"
+  "@heximon/dev": "0.15.0"
+  "@heximon/domain": "0.15.0"
+  "@heximon/drizzle": "0.15.0"
+  "@heximon/durable": "0.15.0"
+  "@heximon/events": "0.15.0"
+  "@heximon/eventstore": "0.15.0"
+  "@heximon/health": "0.15.0"
+  "@heximon/http": "0.15.0"
+  "@heximon/integration": "0.15.0"
+  "@heximon/kv": "0.15.0"
+  "@heximon/library": "0.15.0"
+  "@heximon/logging": "0.15.0"
+  "@heximon/mcp": "0.15.0"
+  "@heximon/netlify": "0.15.0"
+  "@heximon/nitro": "0.15.0"
+  "@heximon/node": "0.15.0"
+  "@heximon/notifications": "0.15.0"
+  "@heximon/nuxt": "0.15.0"
+  "@heximon/openapi": "0.15.0"
+  "@heximon/otel": "0.15.0"
+  "@heximon/persistence": "0.15.0"
+  "@heximon/primitives": "0.15.0"
+  "@heximon/queue": "0.15.0"
+  "@heximon/runtime": "0.15.0"
+  "@heximon/saga": "0.15.0"
+  "@heximon/schedule": "0.15.0"
+  "@heximon/schema": "0.15.0"
+  "@heximon/sse": "0.15.0"
+  "@heximon/testing": "0.15.0"
+  "@heximon/vercel": "0.15.0"
+  "@heximon/websocket": "0.15.0"
+  "@heximon/workflow": "0.15.0"
+
+# Releases that are younger than the release age policy of pnpm. Remove an entry when pnpm accepts the version.
+minimumReleaseAgeExclude:
+  - "@nuxt/kit-nightly@5.0.0-29814535.1ceb443f"
+  - "@nuxt/nitro-server-nightly@5.0.0-29814535.1ceb443f"
+  - "@nuxt/schema-nightly@5.0.0-29814535.1ceb443f"
+  - "@nuxt/vite-builder-nightly@5.0.0-29814535.1ceb443f"
+  - "@nuxt/vite-server-nightly@5.0.0-29814535.1ceb443f"
+  - "@oxc-parser/binding-android-arm-eabi@0.149.0"
+  - "@oxc-parser/binding-android-arm64@0.149.0"
+  - "@oxc-parser/binding-darwin-arm64@0.149.0"
+  - "@oxc-parser/binding-darwin-x64@0.149.0"
+  - "@oxc-parser/binding-freebsd-x64@0.149.0"
+  - "@oxc-parser/binding-linux-arm-gnueabihf@0.149.0"
+  - "@oxc-parser/binding-linux-arm-musleabihf@0.149.0"
+  - "@oxc-parser/binding-linux-arm64-gnu@0.149.0"
+  - "@oxc-parser/binding-linux-arm64-musl@0.149.0"
+  - "@oxc-parser/binding-linux-ppc64-gnu@0.149.0"
+  - "@oxc-parser/binding-linux-riscv64-gnu@0.149.0"
+  - "@oxc-parser/binding-linux-riscv64-musl@0.149.0"
+  - "@oxc-parser/binding-linux-s390x-gnu@0.149.0"
+  - "@oxc-parser/binding-linux-x64-gnu@0.149.0"
+  - "@oxc-parser/binding-linux-x64-musl@0.149.0"
+  - "@oxc-parser/binding-openharmony-arm64@0.149.0"
+  - "@oxc-parser/binding-wasm32-wasi@0.149.0"
+  - "@oxc-parser/binding-win32-arm64-msvc@0.149.0"
+  - "@oxc-parser/binding-win32-ia32-msvc@0.149.0"
+  - "@oxc-parser/binding-win32-x64-msvc@0.149.0"
+  - "@oxc-project/types@0.149.0"
+  - miniflare@5.20260907.0-alpha
+  - mysql2@3.24.4
+  - nuxt-nightly@5.0.0-29814535.1ceb443f
+  - oxc-parser@0.149.0
+  - srvx@1.0.4
+  - unimport@7.0.1

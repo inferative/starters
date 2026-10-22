@@ -2,7 +2,7 @@
 // Every public address of the site, the root included. The page tree of the channel decides which entry an
 // address names. This file reads the entry, draws its sections, sets the cache headers and the head, and
 // answers 404 for an address that nothing serves.
-import { SiteCacheProfile, SiteRouteResolution } from "@inferative/site/core";
+import { SiteRouteResolution } from "@inferative/site/core";
 
 const route = useRoute();
 const site = useSiteChannel();
@@ -49,7 +49,8 @@ const sections = computed(() => body.data.value?.document?.["sections"]);
 
 // One owner stamps `Cache-Control`, `Cache-Tag` and `Vary` of the response, after the entry read settled.
 useSiteCache({
-  profile: SiteCacheProfile.Page,
+  // A failed read (a refused channel key, an outage) is stored nowhere and names `Retry-After`.
+  profile: SiteRouteResolution.cacheProfileOf(page.status.value, page.resolved.value.error.value),
   varyOnLanguage: true,
   varyOnCookie: true,
   entries:
@@ -75,8 +76,7 @@ await seo.ready();
 
 useSeoHead({
   descriptor: seo,
-  title: () => title.value || "Page unavailable",
-  description: ""
+  title: () => title.value || "Page unavailable"
 });
 useJsonLd({ descriptor: seo });
 useHreflang({ descriptor: seo });
