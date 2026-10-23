@@ -3,6 +3,9 @@
   "integration": {
     "subscriptions": [
       {
+        "event": "access.lost"
+      },
+      {
         "event": "channel.archived"
       },
       {
@@ -208,6 +211,9 @@
       },
       {
         "event": "seo.redirect.updated"
+      },
+      {
+        "event": "seo.settings.reconcile-pending"
       },
       {
         "event": "seo.settings.updated"
