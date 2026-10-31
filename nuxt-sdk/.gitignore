@@ -1,0 +1,11 @@
+# Dependencies and build output
+node_modules
+.nuxt
+.output
+.data
+dist
+
+# Local files: secrets never go into the repository
+.env
+.env.*
+!.env.example

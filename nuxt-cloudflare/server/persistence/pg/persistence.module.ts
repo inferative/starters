@@ -1,6 +1,7 @@
 import { Module } from "@heximon/runtime";
 import { PgActivityPersistence } from "@inferative/activity/persistence/pg";
 import { LiveEntityAnnouncer } from "@inferative/base/entity";
+import { RevisionPurgeDeliveries } from "@inferative/base/revisions";
 import { PgBasePersistence } from "@inferative/base/persistence/pg";
 import { PgMigrations } from "@inferative/base/persistence/pg/migrations";
 import { PgChannelsPersistence } from "@inferative/channels/persistence/pg";
@@ -21,7 +22,7 @@ import { DatabaseModule } from "./database.module";
 
 /** The database of the site: the one connection, the migrations and the persistence module of each package. */
 export class PersistenceModule extends Module({
-  requires: [LiveEntityAnnouncer],
+  requires: [LiveEntityAnnouncer, RevisionPurgeDeliveries],
   imports: [
     DatabaseModule,
     PgMigrations,

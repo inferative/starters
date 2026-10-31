@@ -1,0 +1,68 @@
+# A published release runs the migrations and deploys the two Workers: the applets Worker, then the dashboard Worker,
+# which binds the applet supervisor of the applets Worker by name (README, "The two Workers"). A manual run does the same.
+name: Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+# One group keeps two deploys, and their migrations, apart.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Migrate and deploy the Workers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # `@inferative` and `@heximon` come from GitHub Packages. The organization secret holds the read token.
+      - name: Point the private scopes at GitHub Packages
+        run: |
+          {
+            echo "@inferative:registry=https://npm.pkg.github.com"
+            echo "@heximon:registry=https://npm.pkg.github.com"
+            echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}"
+          } >> "$HOME/.npmrc"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.READ_PACKAGES_TOKEN }}
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # The migrations run over the direct connection, before the new code goes live.
+      - name: Run the migrations
+        run: pnpm db:migrate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Build the dashboard Worker
+        run: pnpm build
+
+      - name: Build the applets Worker
+        run: pnpm build:applets
+
+      # It goes first: the dashboard Worker binds its applet supervisor by name.
+      - name: Deploy the applets Worker
+        run: pnpm run deploy:applets
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - name: Deploy the dashboard Worker
+        run: pnpm run deploy:live
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

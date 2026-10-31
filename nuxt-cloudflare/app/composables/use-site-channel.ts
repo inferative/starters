@@ -1,4 +1,4 @@
-import { CurrentChannelApi } from "@inferative/channels/api";
+import { CurrentChannelApi } from "@inferative/channels/public";
 import { useApiQuery } from "@inferative/base/composables/use-api-query";
 
 /**

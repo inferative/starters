@@ -1,0 +1,486 @@
+{
+  "version": 1,
+  "integration": {
+    "subscriptions": [
+      {
+        "event": "access.lost"
+      },
+      {
+        "event": "agents.blocker-wait.registered"
+      },
+      {
+        "event": "agents.held-work.approved"
+      },
+      {
+        "event": "agents.held-work.discarded"
+      },
+      {
+        "event": "agents.project-cap.paused"
+      },
+      {
+        "event": "agents.run.admitted"
+      },
+      {
+        "event": "agents.run.pages-pulled"
+      },
+      {
+        "event": "agents.run.provider-failed"
+      },
+      {
+        "event": "agents.runner.capacity-changed"
+      },
+      {
+        "event": "agents.task.loop-limit-reached"
+      },
+      {
+        "event": "agents.variable.narrowed"
+      },
+      {
+        "event": "agents.work.marked-untrusted"
+      },
+      {
+        "event": "agents.work.ready"
+      },
+      {
+        "event": "assistant.alert.fired"
+      },
+      {
+        "event": "assistant.digest.sent"
+      },
+      {
+        "event": "assistant.purge.sessions"
+      },
+      {
+        "event": "assistant.room.agent-mentioned"
+      },
+      {
+        "event": "assistant.room.call-answered"
+      },
+      {
+        "event": "assistant.room.consultation-ready"
+      },
+      {
+        "event": "assistant.room.people-mentioned"
+      },
+      {
+        "event": "assistant.room.unused-holds"
+      },
+      {
+        "event": "assistant.session.ending"
+      },
+      {
+        "event": "assistant.session.purged"
+      },
+      {
+        "event": "channel.archived"
+      },
+      {
+        "event": "channel.created"
+      },
+      {
+        "event": "channel.disabled"
+      },
+      {
+        "event": "channel.enabled"
+      },
+      {
+        "event": "channel.key.revoked"
+      },
+      {
+        "event": "channel.manifest.abandoned"
+      },
+      {
+        "event": "channel.manifest.activated"
+      },
+      {
+        "event": "channel.manifest.ready"
+      },
+      {
+        "event": "channel.manifest.served"
+      },
+      {
+        "event": "channel.updated"
+      },
+      {
+        "event": "connectors.checks.failed"
+      },
+      {
+        "event": "connectors.pull-request.merged"
+      },
+      {
+        "event": "content.entry.created"
+      },
+      {
+        "event": "content.entry.deleted"
+      },
+      {
+        "event": "content.entry.published"
+      },
+      {
+        "event": "content.entry.unpublished"
+      },
+      {
+        "event": "content.entry.updated"
+      },
+      {
+        "event": "content.schema.synced"
+      },
+      {
+        "event": "decisions.memo.answered"
+      },
+      {
+        "event": "decisions.opinion.requested"
+      },
+      {
+        "event": "entity.removed"
+      },
+      {
+        "event": "files.file.deleted"
+      },
+      {
+        "event": "files.file.held"
+      },
+      {
+        "event": "files.file.purged"
+      },
+      {
+        "event": "files.file.quarantined"
+      },
+      {
+        "event": "files.file.ready"
+      },
+      {
+        "event": "files.file.release-requested"
+      },
+      {
+        "event": "files.file.updated"
+      },
+      {
+        "event": "files.gallery.deleted"
+      },
+      {
+        "event": "files.gallery.showing-changed"
+      },
+      {
+        "event": "files.gallery.updated"
+      },
+      {
+        "event": "identity.account.deleted"
+      },
+      {
+        "event": "identity.grant.ended"
+      },
+      {
+        "event": "identity.grant.issued"
+      },
+      {
+        "event": "identity.grant.used"
+      },
+      {
+        "event": "identity.logout"
+      },
+      {
+        "event": "identity.member.departed"
+      },
+      {
+        "event": "identity.mfa.challenge.failed"
+      },
+      {
+        "event": "identity.mfa.challenge.succeeded"
+      },
+      {
+        "event": "identity.mfa.enrolled"
+      },
+      {
+        "event": "identity.mfa.removed"
+      },
+      {
+        "event": "identity.passkey.counter-regression"
+      },
+      {
+        "event": "identity.passkey.registered"
+      },
+      {
+        "event": "identity.passkey.removed"
+      },
+      {
+        "event": "identity.password.reset"
+      },
+      {
+        "event": "identity.password.reset-requested"
+      },
+      {
+        "event": "identity.platform.account_deleted"
+      },
+      {
+        "event": "identity.platform.account_restored"
+      },
+      {
+        "event": "identity.platform.account_suspended"
+      },
+      {
+        "event": "identity.platform.instance_enrolled"
+      },
+      {
+        "event": "identity.platform.instance_enrollment_created"
+      },
+      {
+        "event": "identity.platform.instance_revoked"
+      },
+      {
+        "event": "identity.platform.member_invited"
+      },
+      {
+        "event": "identity.platform.member_removed"
+      },
+      {
+        "event": "identity.platform.member_roles_changed"
+      },
+      {
+        "event": "identity.platform.organization_created"
+      },
+      {
+        "event": "identity.platform.organization_members_read"
+      },
+      {
+        "event": "identity.platform.organization_read"
+      },
+      {
+        "event": "identity.platform.organization_restored"
+      },
+      {
+        "event": "identity.platform.organization_suspended"
+      },
+      {
+        "event": "identity.platform.organizations_listed"
+      },
+      {
+        "event": "identity.platform.plan_changed"
+      },
+      {
+        "event": "identity.platform.settings_changed"
+      },
+      {
+        "event": "identity.platform.sign_in_methods_reset"
+      },
+      {
+        "event": "identity.platform.support_session_ended"
+      },
+      {
+        "event": "identity.platform.support_session_started"
+      },
+      {
+        "event": "identity.platform.tier_organizations_listed"
+      },
+      {
+        "event": "identity.platform.tier_plan_read"
+      },
+      {
+        "event": "identity.platform.tier_preview_read"
+      },
+      {
+        "event": "identity.recovery-code.regenerated"
+      },
+      {
+        "event": "identity.session.created"
+      },
+      {
+        "event": "identity.session.revoked"
+      },
+      {
+        "event": "identity.token.refreshed"
+      },
+      {
+        "event": "identity.token.replay-detected"
+      },
+      {
+        "event": "localization.fill.requested"
+      },
+      {
+        "event": "notifications.chat.message.received"
+      },
+      {
+        "event": "notifications.inbox.ended"
+      },
+      {
+        "event": "notifications.inbox.opened"
+      },
+      {
+        "event": "notifications.inbox.requested"
+      },
+      {
+        "event": "notifications.requested"
+      },
+      {
+        "event": "pages.paths.changed"
+      },
+      {
+        "event": "pages.paths.rebuilt"
+      },
+      {
+        "event": "projects.code-reference.requested"
+      },
+      {
+        "event": "projects.merge-queue.integrated"
+      },
+      {
+        "event": "projects.merge-queue.pull-request-opened"
+      },
+      {
+        "event": "projects.merge-queue.withdrawn"
+      },
+      {
+        "event": "projects.milestone.accepted"
+      },
+      {
+        "event": "projects.review.decided"
+      },
+      {
+        "event": "publishing.archived"
+      },
+      {
+        "event": "publishing.forgotten"
+      },
+      {
+        "event": "publishing.published"
+      },
+      {
+        "event": "publishing.restore-draft.requested"
+      },
+      {
+        "event": "publishing.review.rejected"
+      },
+      {
+        "event": "publishing.review.requested"
+      },
+      {
+        "event": "publishing.unpublished"
+      },
+      {
+        "event": "realtime.broadcast.requested"
+      },
+      {
+        "event": "revisions.content.purged"
+      },
+      {
+        "event": "seo.address.changed"
+      },
+      {
+        "event": "seo.manifest.applied"
+      },
+      {
+        "event": "seo.purge.requested"
+      },
+      {
+        "event": "seo.redirect.created"
+      },
+      {
+        "event": "seo.redirect.deleted"
+      },
+      {
+        "event": "seo.redirect.updated"
+      },
+      {
+        "event": "seo.settings.reconcile-pending"
+      },
+      {
+        "event": "seo.settings.updated"
+      },
+      {
+        "event": "taxonomy.assignment.changed"
+      },
+      {
+        "event": "taxonomy.collection.rebuilt"
+      },
+      {
+        "event": "taxonomy.facet-value.changed"
+      },
+      {
+        "event": "taxonomy.term.changed"
+      },
+      {
+        "event": "taxonomy.vocabulary.changed"
+      },
+      {
+        "event": "tiers.plan.changed"
+      }
+    ]
+  },
+  "saga": {
+    "timeouts": [
+      {
+        "slot": "chat-delivery"
+      },
+      {
+        "slot": "lease-end"
+      },
+      {
+        "slot": "login-reset"
+      },
+      {
+        "slot": "memo-default"
+      },
+      {
+        "slot": "reversibility-end"
+      },
+      {
+        "slot": "wake-retry"
+      }
+    ]
+  },
+  "workflow": {
+    "workflows": [
+      {
+        "resourceName": "assistant-api-run",
+        "fingerprint": "35a3160b",
+        "sites": [
+          {
+            "kind": "do",
+            "name": "record-start"
+          },
+          {
+            "kind": "do"
+          },
+          {
+            "kind": "waitForEvent"
+          },
+          {
+            "kind": "do",
+            "name": "record-finish"
+          }
+        ]
+      },
+      {
+        "resourceName": "assistant-room-consultation",
+        "fingerprint": "4fdede09",
+        "sites": [
+          {
+            "kind": "do"
+          }
+        ]
+      },
+      {
+        "resourceName": "notifications-chat-reply",
+        "fingerprint": "d1d3b57c",
+        "sites": [
+          {
+            "kind": "sleep",
+            "name": "queued"
+          },
+          {
+            "kind": "do",
+            "name": "turn"
+          },
+          {
+            "kind": "do",
+            "name": "deliver"
+          },
+          {
+            "kind": "do",
+            "name": "notice"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -5,8 +5,8 @@
 
 import { EntityField, SortDirection } from "@inferative/base/api";
 import { ContentListColumn } from "@inferative/base/core";
-import { defineContentType } from "@inferative/content/api";
-import { PageFields, menuFields, menuTypeOptions, pageTypeOptions } from "@inferative/pages/api";
+import { defineContentType } from "@inferative/content/public";
+import { PageFields, menuFields, menuTypeOptions, pageTypeOptions } from "@inferative/pages/public";
 import {
   defineSite,
   starterCommerceSections,
@@ -15,7 +15,7 @@ import {
   starterMediaSections,
   starterSections,
   starterVideoSections
-} from "@inferative/site/core";
+} from "@inferative/sdk/site";
 
 /**
  * The content types of this site. `page` is the one addressable type: a page is a title, a slug and a list of

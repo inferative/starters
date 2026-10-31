@@ -1,0 +1,13 @@
+<template>
+  <NuxtPage />
+</template>
+
+<style>
+body {
+  max-width: 40rem;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+}
+</style>

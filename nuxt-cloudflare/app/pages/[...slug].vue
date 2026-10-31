@@ -2,15 +2,18 @@
 // Every public address of the site, the root included. The page tree of the channel decides which entry an
 // address names. This file reads the entry, draws its sections, sets the cache headers and the head, and
 // answers 404 for an address that nothing serves.
-import { SiteCacheProfile, SiteRouteResolution } from "@inferative/site/core";
+import { SiteRouteResolution } from "@inferative/sdk/site";
 
-const route = useRoute();
+// An address names its language when `localization.pathPrefix` is set: the middleware renders it in that language.
+definePageMeta({ middleware: ["site-address-language"] });
+
 const site = useSiteChannel();
 const locale = useAppLocale();
 
-const segments = computed(() =>
-  SiteRouteResolution.segmentsOf("slug" in route.params ? route.params.slug : undefined)
-);
+// The address without its language segment (`/hu/…`) when the host's `localization.pathPrefix` adds one: the
+// pages tier stores every address with no segment.
+const address = useSiteLocaleAddress();
+const segments = address.segments;
 
 const page = usePage(segments, { locale });
 
@@ -24,7 +27,10 @@ const body = useContentEntry(
 await Promise.all([site.ready(), page.ready()]);
 
 // A relocated page answers a redirect to its current address, before the dependent reads start.
-await useCanonicalRedirect(page.relocated, page.canonicalPath);
+await useCanonicalRedirect(page.relocated, page.canonicalPath, {
+  to: () =>
+    page.canonicalPath.value === undefined ? undefined : address.hrefOf(page.canonicalPath.value)
+});
 
 // The status is the resolve's. A page that is unknown, unpublished or withdrawn draws the panel below as a
 // 404, so a crawler drops it from its index.
@@ -49,7 +55,8 @@ const sections = computed(() => body.data.value?.document?.["sections"]);
 
 // One owner stamps `Cache-Control`, `Cache-Tag` and `Vary` of the response, after the entry read settled.
 useSiteCache({
-  profile: SiteCacheProfile.Page,
+  // A failed read (a refused channel key, an outage) is stored nowhere and names `Retry-After`.
+  profile: SiteRouteResolution.cacheProfileOf(page.status.value, page.resolved.value.error.value),
   varyOnLanguage: true,
   varyOnCookie: true,
   entries:
@@ -75,8 +82,7 @@ await seo.ready();
 
 useSeoHead({
   descriptor: seo,
-  title: () => title.value || "Page unavailable",
-  description: ""
+  title: () => title.value || "Page unavailable"
 });
 useJsonLd({ descriptor: seo });
 useHreflang({ descriptor: seo });
@@ -111,7 +117,7 @@ useHreflang({ descriptor: seo });
       </template>
 
       <template #links>
-        <UButton to="/" icon="i-lucide-home" label="Back to the home page" />
+        <UButton :to="address.hrefOf('/')" icon="i-lucide-home" label="Back to the home page" />
       </template>
     </UPageSection>
   </div>

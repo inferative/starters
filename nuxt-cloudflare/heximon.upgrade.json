@@ -3,6 +3,9 @@
   "integration": {
     "subscriptions": [
       {
+        "event": "access.lost"
+      },
+      {
         "event": "channel.archived"
       },
       {
@@ -138,10 +141,55 @@
         "event": "identity.platform.instance_revoked"
       },
       {
+        "event": "identity.platform.member_invited"
+      },
+      {
+        "event": "identity.platform.member_removed"
+      },
+      {
+        "event": "identity.platform.member_roles_changed"
+      },
+      {
+        "event": "identity.platform.organization_created"
+      },
+      {
+        "event": "identity.platform.organization_members_read"
+      },
+      {
         "event": "identity.platform.organization_read"
       },
       {
+        "event": "identity.platform.organization_restored"
+      },
+      {
+        "event": "identity.platform.organization_suspended"
+      },
+      {
         "event": "identity.platform.organizations_listed"
+      },
+      {
+        "event": "identity.platform.plan_changed"
+      },
+      {
+        "event": "identity.platform.settings_changed"
+      },
+      {
+        "event": "identity.platform.sign_in_methods_reset"
+      },
+      {
+        "event": "identity.platform.support_session_ended"
+      },
+      {
+        "event": "identity.platform.support_session_started"
+      },
+      {
+        "event": "identity.platform.tier_organizations_listed"
+      },
+      {
+        "event": "identity.platform.tier_plan_read"
+      },
+      {
+        "event": "identity.platform.tier_preview_read"
       },
       {
         "event": "identity.recovery-code.regenerated"
@@ -192,6 +240,9 @@
         "event": "publishing.unpublished"
       },
       {
+        "event": "revisions.content.purged"
+      },
+      {
         "event": "seo.address.changed"
       },
       {
@@ -210,7 +261,13 @@
         "event": "seo.redirect.updated"
       },
       {
+        "event": "seo.settings.reconcile-pending"
+      },
+      {
         "event": "seo.settings.updated"
+      },
+      {
+        "event": "tiers.plan.changed"
       }
     ]
   }

@@ -1,0 +1,104 @@
+# Each night, and on a manual run, `pnpm backup create` writes one archive of the production database and the files
+# bucket, encrypted with age to the public key in INFERATIVE_BACKUP_AGE_RECIPIENT, and `pnpm backup upload` copies it
+# to the separate bucket of archives, whose lifecycle rule deletes an archive after 30 days (README, "The nightly backup"). The
+# private key never reaches GitHub. No step prints a secret: the commands print names, counts and digests only.
+name: Backup
+
+on:
+  schedule:
+    # 02:30 UTC, before the nightly sweeps that delete stored objects (the files retention at 03:30 UTC, the assistant
+    # retention at 04:00 UTC). While the backup holds its deletion fence, the file store refuses each delete, and a sweep
+    # does it on its next run. GitHub can start a scheduled run late; a refused delete is not lost.
+    - cron: "30 2 * * *"
+  workflow_dispatch:
+
+# Two runs never hold two fences at once. A deploy can run beside a backup: a migration waits for its read snapshot.
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    name: Back up the database and the files
+    runs-on: ubuntu-latest
+    # Longer than the 120 minutes of the deletion fence: a backup that outlives its fence fails by itself.
+    timeout-minutes: 150
+    steps:
+      # A missing secret fails the run with its name, before anything is installed. Each secret reaches only the steps
+      # that read it, never the install and its scripts.
+      - name: Check that the backup secrets are set
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          INFERATIVE_FILES_R2_ACCOUNT_ID: ${{ secrets.INFERATIVE_FILES_R2_ACCOUNT_ID }}
+          INFERATIVE_FILES_R2_BUCKET: ${{ secrets.INFERATIVE_FILES_R2_BUCKET }}
+          INFERATIVE_FILES_R2_ACCESS_KEY_ID: ${{ secrets.INFERATIVE_FILES_R2_ACCESS_KEY_ID }}
+          INFERATIVE_FILES_R2_SECRET_ACCESS_KEY: ${{ secrets.INFERATIVE_FILES_R2_SECRET_ACCESS_KEY }}
+          INFERATIVE_BACKUP_AGE_RECIPIENT: ${{ secrets.INFERATIVE_BACKUP_AGE_RECIPIENT }}
+          # The bucket of archives is in the account of the files bucket.
+          INFERATIVE_BACKUP_R2_ACCOUNT_ID: ${{ secrets.INFERATIVE_FILES_R2_ACCOUNT_ID }}
+          INFERATIVE_BACKUP_R2_BUCKET: ${{ secrets.INFERATIVE_BACKUP_R2_BUCKET }}
+          INFERATIVE_BACKUP_R2_ACCESS_KEY_ID: ${{ secrets.INFERATIVE_BACKUP_R2_ACCESS_KEY_ID }}
+          INFERATIVE_BACKUP_R2_SECRET_ACCESS_KEY: ${{ secrets.INFERATIVE_BACKUP_R2_SECRET_ACCESS_KEY }}
+        run: |
+          missing=""
+          for name in DATABASE_URL INFERATIVE_FILES_R2_ACCOUNT_ID INFERATIVE_FILES_R2_BUCKET \
+            INFERATIVE_FILES_R2_ACCESS_KEY_ID INFERATIVE_FILES_R2_SECRET_ACCESS_KEY INFERATIVE_BACKUP_AGE_RECIPIENT \
+            INFERATIVE_BACKUP_R2_BUCKET INFERATIVE_BACKUP_R2_ACCESS_KEY_ID INFERATIVE_BACKUP_R2_SECRET_ACCESS_KEY; do
+            if [ -z "${!name}" ]; then missing="$missing $name"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Set these repository secrets for the nightly backup:$missing"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v7
+
+      # `@inferative` and `@heximon` come from GitHub Packages. The organization secret holds the read token.
+      - name: Point the private scopes at GitHub Packages
+        run: |
+          {
+            echo "@inferative:registry=https://npm.pkg.github.com"
+            echo "@heximon:registry=https://npm.pkg.github.com"
+            echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}"
+          } >> "$HOME/.npmrc"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.READ_PACKAGES_TOKEN }}
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Over the direct connection, not Hyperdrive. The archive is encrypted before its bytes reach the disk.
+      - name: Write the encrypted archive
+        run: |
+          archive="$RUNNER_TEMP/${GITHUB_REPOSITORY#*/}-$(date -u +%Y%m%dT%H%M%SZ).tar.gz.age"
+          echo "ARCHIVE=$archive" >> "$GITHUB_ENV"
+          pnpm backup create --out "$archive" --r2
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          INFERATIVE_FILES_R2_ACCOUNT_ID: ${{ secrets.INFERATIVE_FILES_R2_ACCOUNT_ID }}
+          INFERATIVE_FILES_R2_BUCKET: ${{ secrets.INFERATIVE_FILES_R2_BUCKET }}
+          INFERATIVE_FILES_R2_ACCESS_KEY_ID: ${{ secrets.INFERATIVE_FILES_R2_ACCESS_KEY_ID }}
+          INFERATIVE_FILES_R2_SECRET_ACCESS_KEY: ${{ secrets.INFERATIVE_FILES_R2_SECRET_ACCESS_KEY }}
+          INFERATIVE_BACKUP_AGE_RECIPIENT: ${{ secrets.INFERATIVE_BACKUP_AGE_RECIPIENT }}
+
+      - name: Upload the archive to the bucket of archives
+        run: pnpm backup upload --archive "$ARCHIVE" --key "nightly/$(basename "$ARCHIVE")"
+        env:
+          # The bucket of archives is in the account of the files bucket.
+          INFERATIVE_BACKUP_R2_ACCOUNT_ID: ${{ secrets.INFERATIVE_FILES_R2_ACCOUNT_ID }}
+          INFERATIVE_BACKUP_R2_BUCKET: ${{ secrets.INFERATIVE_BACKUP_R2_BUCKET }}
+          INFERATIVE_BACKUP_R2_ACCESS_KEY_ID: ${{ secrets.INFERATIVE_BACKUP_R2_ACCESS_KEY_ID }}
+          INFERATIVE_BACKUP_R2_SECRET_ACCESS_KEY: ${{ secrets.INFERATIVE_BACKUP_R2_SECRET_ACCESS_KEY }}
+
+      - name: Remove the local archive
+        if: always()
+        run: rm -f "${ARCHIVE:-}"

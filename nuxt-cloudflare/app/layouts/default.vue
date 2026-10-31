@@ -7,6 +7,10 @@ await site.ready();
 
 const siteName = computed(() => site.channel.data.value?.name ?? "My Inferative site");
 const currentYear = new Date().getFullYear();
+
+// The home page of the language the page is read in: `/`, or `/hu` when the addresses carry a language segment.
+const address = useSiteLocaleAddress();
+const home = computed(() => address.hrefOf("/"));
 </script>
 
 <template>
@@ -17,7 +21,7 @@ const currentYear = new Date().getFullYear();
     <!-- The edit chrome of the visual editor. It draws nothing and arms no listener for an ordinary reader. -->
     <ASiteEditOverlay />
 
-    <UHeader to="/" :title="siteName" />
+    <UHeader :to="home" :title="siteName" />
 
     <UMain>
       <slot />
