@@ -37,6 +37,12 @@ import {
   ModelProxiesCapabilitiesModule,
   SanitizerReleasesCapabilitiesModule
 } from "@inferative/base/capabilities";
+import {
+  HostCheck,
+  HostCheckFallthrough,
+  HostCheckMiddleware,
+  HostCheckSeat
+} from "@inferative/base/origin";
 import { RenderFrameFallthrough } from "@inferative/base/render";
 import { WideEventConsoleDrain } from "@heximon/logging";
 import { ReadOnlyDispatchMiddleware, RequestReadsMiddleware } from "@inferative/base/request";
@@ -68,12 +74,9 @@ import {
 } from "@inferative/dashboard/server";
 import { DecisionsModule, DecisionsTimersModule } from "@inferative/decisions/server";
 import { DecisionsCapabilitiesModule } from "@inferative/decisions/capabilities";
-import {
-  CloudflareFilesStoreInfrastructure,
-  CloudflareResponseCacheInfrastructure
-} from "@inferative/files/infrastructure/cloudflare";
+import { CloudflareFilesStoreInfrastructure } from "@inferative/files/infrastructure/cloudflare";
 import { FilesR2DevelopmentStore } from "@inferative/files/infrastructure/cloudflare/development";
-import { FilesModule } from "@inferative/files/server";
+import { FilesModule, IsolateResponseCacheModule } from "@inferative/files/server";
 import { FilesCapabilitiesModule } from "@inferative/files/capabilities";
 import { IdentityKeysModule, RenderSessionMiddleware } from "@inferative/identity/keys";
 import {
@@ -214,14 +217,15 @@ export class AppModule extends Module({
     // before them.
     SecretStoreModelConnectionCredentialsModule,
     ModelConnectionsModule,
-    // The sanitizer releases an organization keeps, and Settings › Organization › Sanitizers.
+    // The sanitizer releases an organization keeps, and Settings › AI › Sanitizers.
     SanitizerReleasesModule,
     SanitizerReleasesCapabilitiesModule,
     // The one `Storage` of the Worker, in a Durable Object that every isolate reaches: the claims of command
     // idempotency, the approval latches and the session cache.
     CloudflareStorageInfrastructure,
-    // The response cache, in its own Durable Object, so an edit in one isolate clears it for all.
-    CloudflareResponseCacheInfrastructure,
+    // The response cache, in the memory of each isolate within the `responseCache` bounds. An edit empties it in its
+    // isolate at once and in every other isolate within a second, through a hint in the `Storage` above.
+    IsolateResponseCacheModule,
     // The R2 bucket of the files and of the large assistant rows.
     CloudflareFilesStoreInfrastructure,
     // The S3 path to the same bucket, for `nuxt dev`. `dev: true` drops it, and the AWS SDK, from a production build.
@@ -324,9 +328,12 @@ export class AppModule extends Module({
     // The demo data of a test install, which `heximon task run DemoSeedModule SeedDemo` loads. No route runs it.
     DemoSeedModule
   ],
+  // The streams and the CORS preflights, which the middlewares do not wrap, check the host through this check.
+  contributes: [{ to: HostCheckSeat, useClass: HostCheck }],
   http: {
-    // A tool call of a route that declares itself a read runs in a read transaction, so a write in it fails.
-    middlewares: [RequestReadsMiddleware, ReadOnlyDispatchMiddleware],
+    // The host check comes first: a request on a host that the deployment does not serve does nothing else. A tool
+    // call of a route that declares itself a read runs in a read transaction, so a write in it fails.
+    middlewares: [HostCheckMiddleware, RequestReadsMiddleware, ReadOnlyDispatchMiddleware],
     headers: [ChannelVaryHeaderContributor]
   },
   app: {
@@ -340,9 +347,15 @@ export class AppModule extends Module({
       seeds: [TenantSeed]
     },
     http: {
-      // A page render starts in the negotiated locale and from the visitor's session. The render scope opens first,
-      // so the session read already goes through the memo of the render.
-      fallthrough: [RenderFrameFallthrough, LocaleNegotiationFallthrough, RenderSessionMiddleware],
+      // A page on a host that the deployment does not serve is refused first. A page render starts in the negotiated
+      // locale and from the visitor's session. The render scope opens before them, so the session read already goes
+      // through the memo of the render.
+      fallthrough: [
+        HostCheckFallthrough,
+        RenderFrameFallthrough,
+        LocaleNegotiationFallthrough,
+        RenderSessionMiddleware
+      ],
       // A request under the API mount that no route serves answers a problem document, never a page.
       owns: ["/api"],
       // The websites of the channels live on other origins: they call the channel routes, and the visual editor

@@ -9,8 +9,10 @@ the site SDK.
 - The website has no Inferative layer, no dashboard, no Heximon app and no database. Do not add one to this project:
   the content and its editors live in the dashboard of the deployment.
 - `shared/site.ts` declares the content types. After each change, run `pnpm check:manifest`, then `pnpm sync:manifest`.
-- A page reads content with the composables of `@inferative/sdk/nuxt` (`useContent`, `useSiteSchema`,
-  `useSiteResolution`), which need no import. Await each read during setup, so the server render carries the answer.
+- A page reads content with the composables of `@inferative/sdk/nuxt` (`useSitePage`, `useContent`, `useSiteCache`,
+  `useSiteHead`, `useSiteSchema`), which need no import. Await each read during setup, so the server render carries
+  the answer.
+- A section type of `shared/site.ts` draws through the component that `app/app.vue` registers for its key.
 - A type key in a read is the channel's key: `useSiteSchema().typeKey("post")` on a page, `TypeKey.normalize` on the
   server.
 - Server code goes in `server/`. It reads the API with `Inferative.client(...)` (`@inferative/sdk/client`).

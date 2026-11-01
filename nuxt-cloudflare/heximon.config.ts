@@ -8,7 +8,7 @@ import { inferativeServerPlugins } from "@inferative/base/compiler";
  * deploy platform comes from the Nitro preset in `nuxt.config.ts`, not from this file. Both database setups sit
  * in `server/`, so the compiler would find the unused `PersistenceModule` as a second root. `root` pins the app
  * root. `cloudflare` holds the Worker name, the bindings of the Worker and its preview environment; the type import
- * above gives the config type that key.
+ * above gives the config type that key. `durable` names a Durable Object class that a deploy deletes.
  */
 export default defineHeximonConfig({
   root: "AppModule",
@@ -32,17 +32,21 @@ export default defineHeximonConfig({
     environments: {
       preview: {
         crons: [],
-        // The one binding that is not a copy: the response cache of the live Worker. Both Workers serve one database,
-        // so an edit through either one must clear the one cache. `scriptName` is the live Worker's name. Deploy the
-        // live Worker first: the preview deploy fails while that Worker does not exist.
+        // The one binding that is not a copy: the `Storage` room of the live Worker. Both Workers serve one database,
+        // so an edit through either one must reach the response cache of both: each isolate keeps its cache in memory
+        // and reads the hint of an edit from this room. `scriptName` is the live Worker's name. Deploy the live Worker
+        // first: the preview deploy fails while that Worker does not exist.
         durableObjects: [
           {
-            binding: "RESPONSE_CACHE_ROOM",
-            className: "ResponseCacheRoomDO",
+            binding: "STORAGE_ROOM",
+            className: "StorageRoomDO",
             scriptName: "my-inferative-site"
           }
         ]
       }
     }
-  }
+  },
+  // The Durable Object that held the response cache before each isolate kept it in memory. A deploy deletes it and its
+  // data. Delete this entry when a deploy lists it under `removable_entries`.
+  durable: { deletedClasses: ["ResponseCacheRoomDO"] }
 });

@@ -19,7 +19,7 @@ dashboard-setup`) runs each step below and stops at each browser step.
 | File | What it holds |
 | :-- | :-- |
 | `server/app.module.ts` | The modules of the dashboard. Each line adds one capability. Delete a line to remove it. |
-| `server/app.module.ts` (Cloudflare) | The Durable Objects of the Worker: the key-value `Storage` (`CloudflareStorageInfrastructure`), the response cache that every package of the Worker shares (`CloudflareResponseCacheInfrastructure`), the rate limits, the timers (decisions, runner leases, agent wakes and chat deliveries), the assistant conversations and the realtime streams. `inferative.config.ts` names the `durable-object` driver for a production build, and the Worker refuses to boot on any other store. |
+| `server/app.module.ts` (Cloudflare) | The Durable Objects of the Worker: the key-value `Storage` (`CloudflareStorageInfrastructure`), the rate limits, the timers (decisions, runner leases, agent wakes and chat deliveries), the assistant conversations and the realtime streams. `inferative.config.ts` names the `durable-object` driver for a production build, and the Worker refuses to boot on any other store. The response cache that every package of the Worker shares (`IsolateResponseCacheModule`) is in the memory of each isolate, at most 16 MB (`responseCache.maxBytes`); an edit empties it in every isolate within a second, through a hint in the `Storage`. |
 | `server/app.module.ts` (files) | `CloudflareFilesStoreInfrastructure` stores the files and the large assistant rows in the R2 bucket. `FilesR2DevelopmentStore` reaches the same bucket under `nuxt dev`. |
 | `server/demo/` | The demo data of a test install (`pnpm demo:seed`, see "The first run"). Delete the folder and its line in `server/app.module.ts` to leave it out. |
 | `server/persistence/pg/` | The Postgres setup: the connection, the config, the persistence module and `schema.ts`. |
@@ -52,84 +52,95 @@ in the environment.
 
 ## Secrets
 
-The dashboard Worker refuses to boot without these values. The applets Worker needs none. Make each one once, with
-Node:
+The dashboard Worker refuses to boot without one secret. The applets Worker needs none. Make it once, with Node:
 
 | Variable | Make it with |
 | :-- | :-- |
 | `INFERATIVE_ROOT_SECRET` | `node -p 'require("node:crypto").randomBytes(32).toString("base64")'` |
-| `INFERATIVE_IDENTITY_SIGNING_KEY` | `node -p 'const k=require("node:crypto").generateKeyPairSync("ec",{namedCurve:"P-256"}).privateKey.export({format:"jwk"});Buffer.from(JSON.stringify({...k,alg:"ES256"})).toString("base64")'` |
-| `INFERATIVE_IDENTITY_SETUP_TOKEN` | `node -p 'require("node:crypto").randomBytes(24).toString("base64url")'` |
-| `INFERATIVE_BASE_SIGNED_ACCESS_SIGNING_KEYS` | `node -p 'JSON.stringify([{kid:"key-1",secret:require("node:crypto").randomBytes(48).toString("base64url")}])'` |
-| `INFERATIVE_REALTIME_TICKET_SECRET` | `node -p 'require("node:crypto").randomBytes(32).toString("hex")'` |
 
-`INFERATIVE_ROOT_SECRET` is the root secret. With it set, leave `INFERATIVE_IDENTITY_SETUP_TOKEN`,
-`INFERATIVE_BASE_SIGNED_ACCESS_SIGNING_KEYS` and `INFERATIVE_REALTIME_TICKET_SECRET` empty: each one derives from the
-root. A variable that is set wins over the root. `pnpm exec inferative setup-token` prints the setup token of the root
-(`--env-file .env.worker` reads the root of the Worker). To rotate the root, move the old value to
-`INFERATIVE_ROOT_SECRET_PREVIOUS` and set a new root: the links, the agent sessions and the runner command receipts
-that the old root signed keep working, and every new one uses the new root. Keep the previous value until two things
-are over: 30 days, and every backup from before the rotation that you may still restore. A receipt does not expire,
-and a restore needs the key that signed it. With the archive bucket of "The nightly backup", both end after 30 days.
-The previous root also holds the keys at rest that it sealed with, so the conditions below apply too. Do not rotate
-again while the previous root must stay: there is one slot for it.
+`INFERATIVE_ROOT_SECRET` is the root secret. Every other secret of the dashboard derives from it: the setup token, the
+signing keys of links, the realtime ticket secret, the webhook secret of the member chat, and the keys at rest (the key
+of the two-factor secrets, the key of the model history and the current key of the secret store). The first sign-in
+generates the ES256 key that signs sessions and tokens, and the secret store keeps it sealed under the root's key.
+`pnpm exec inferative setup-token` prints the setup token of the root (`--env-file .env.worker` reads the root of the
+Worker).
 
-The keys at rest derive from the root too: the key of the two-factor secrets, the key of the model history and the
-current key of the secret store. A new install sets none of `INFERATIVE_IDENTITY_MFA_ENCRYPTION_KEY`,
-`INFERATIVE_ASSISTANT_HISTORY_ENCRYPTION_KEY` and `INFERATIVE_SECRETS_KEYS`. For these keys the root wins: an install
-that set one before the root keeps it, and the old key then only decrypts what it sealed.
+To rotate the root, move the old value to `INFERATIVE_ROOT_SECRET_PREVIOUS` and set a new root: the links, the agent
+sessions and the runner command receipts that the old root signed keep working, its keys still decrypt, and every new
+one uses the new root. Before you remove `INFERATIVE_ROOT_SECRET_PREVIOUS`, wait until all of these are over:
 
-- A two-factor secret is sealed again under the root's key at its next sign-in. `pnpm mfa:reseal` seals every
-  secret again at once, also the secret of a member who does not sign in. Keep the old MFA key until the task reports
-  `remaining: 0` and no account mail (an invitation, a password reset) queued before the change still waits in the
-  outbox: its link is sealed under a key of the MFA key.
-- A model history row and its stored objects name their key. The assistant has the task `ResealModelHistory`, which
-  seals the history again under the current key. It runs only on a host that `heximon task run` compiles for Node, and
-  this starter compiles for Cloudflare Workers only, so it has no command for the task yet. The retention deletes only
-  a chat that is idle for `chatRetentionDays` (180 by default); an active conversation and a room keep their model
-  history with no end. So keep the old history key for as long as the install keeps history that it sealed. The
-  runner session tokens that the old key made keep working for as long as their agent session stays open, with no
-  time limit, so keep the old history key also until every agent session open before the change has ended.
-- `pnpm secrets:rewrap` seals every value of the secret store again under the root's key. It also keeps the root of
-  the derived webhook secrets of agent bots (the key marked `derive`), so a bot does not need its webhook again.
-  Remove `INFERATIVE_SECRETS_KEYS` when the task reports no value under a listed key.
+- 30 days, and every backup from before the rotation that you may still restore. A runner command receipt does not
+  expire, and a restore needs the key that signed it. With the archive bucket of "The nightly backup", both end after
+  30 days.
+- `pnpm secrets:rewrap` and `pnpm mfa:reseal` report nothing under the previous root.
+- The install keeps no model history that the previous root sealed. The history is never sealed again, and an active
+  conversation keeps it with no end. No agent session open before the rotation is still open.
+- No account mail (an invitation, a password reset) queued before the rotation still waits in the outbox.
 
-At a rotation of the root, the previous root's keys decrypt too. Before you remove `INFERATIVE_ROOT_SECRET_PREVIOUS`,
-run `pnpm secrets:rewrap` and `pnpm mfa:reseal` until each reports nothing under the previous root, and remove it only
-when the install keeps no model history that the previous root sealed, no agent session open before the rotation is
-still open, and no account mail queued before it still waits in the outbox. Until then, do not rotate the root again.
+Do not rotate again while the previous root must stay: there is one slot for it.
 
-Keep a copy of each value outside the repository. A new signing key signs everyone out. A lost root, or a lost older
-key, makes the data that it sealed unreadable: two-factor secrets, model history and the secrets of the secret store.
+Keep a copy of the root outside the repository, in a password manager. A lost root makes the data that it sealed
+unreadable: two-factor secrets, model history, the secrets of the secret store and the kept signing key. Sign-in then
+stops until you delete the kept key (the `identity/signing-key` row of `secret_envelopes`): the next sign-in generates a
+new key, and every session starts again.
 
-A local run and the Worker use one database. Use the same root, signed-access keys and older keys in `.env` and on the
-Worker: they seal data in that database. The signing key, the setup token and the ticket secret may differ.
+A local run and the Worker use one database. Use the same root in `.env` and on the Worker: it seals data in that
+database.
 
-The dashboard Worker also needs `INFERATIVE_APP_ORIGIN` (the `https://` address of the dashboard, with no path) and
-`INFERATIVE_NOTIFICATIONS_SENDER_EMAIL`. The OAuth issuer, the MCP address, the passkey settings and the links in
-mail all come from `INFERATIVE_APP_ORIGIN`, so set none of them. For the linked Telegram chat, see "Telegram". For the
-GitHub App, see "GitHub". AI turns on for an
+The mail sender (its address and name) and the switches of the background work (IndexNow and the daily price sync) are
+on Settings › Organization › Platform: a platform administrator saves them there, so set no variable for them. The
+Worker needs no assistant driver: a production build always calls models through the model connections. The OAuth issuer, the MCP address, the passkey
+settings and the links in mail come from the deployment's default domain, which the first run stores, so set none of them.
+For the linked Telegram chat, see "Telegram". For the GitHub App, see "GitHub". AI turns on for an
 organization when it has a model connection: one that it adds under Organization > Models, or one that the platform
 organization (the first organization) adds there and offers on Inferative's credits. The platform organization's
-connections also give the field writer, the translator and the second-opinion reviewer their model. While the platform
-organization has no connection, `INFERATIVE_MODELS_DEPLOYMENT_CONNECTIONS` (a JSON list of model connections; each entry
-holds a secret key) applies in their place; from its first connection on, the variable is not read. To limit the vendors that may get the text, a
-platform administrator saves the list on Settings › Organization › Platform. With no saved list, the vendor of any
-connection that an organization adds may get it. For the
-websites of your channels, set `INFERATIVE_CHANNELS_ADMINISTRATION_ORIGINS`. The Worker needs no `DATABASE_URL`: it
-uses Hyperdrive. The values under "Local run only" in `.env.example` never go to the Worker.
+connections also give the field writer, the translator and the second-opinion reviewer their model. To limit the
+vendors that may get the text, a platform administrator saves the list on Settings › Organization › Platform. With no
+saved list, the vendor of any connection that an organization adds may get it. For the websites of your channels, set
+`INFERATIVE_CHANNELS_ADMINISTRATION_ORIGINS`. The Worker needs no `DATABASE_URL`: it uses Hyperdrive. The values under
+"Local run only" in `.env.example` never go to the Worker.
 
-The name that people see (`app.name` in `inferative.config.ts`) is also the sender name of every mail, the title of
-the MCP server and the issuer that an authenticator app shows. Set it once there.
+The name that people see is `app.name` in `inferative.config.ts`, until a platform administrator saves another one on
+Settings › Organization › Platform. It is also the sender name of every mail (until a sender name is saved on the same
+tab), the title of the MCP server and the issuer that an authenticator app shows. The organization rules (one
+organization only, open registration, team organizations, the role of a new member, invitations) and the default time
+zone are on the same tab.
 
 The first deploy gives the address. `wrangler deploy` prints it, and so does the log of the Release run:
-`https://<worker name>.<subdomain>.workers.dev`. Use it for `INFERATIVE_APP_ORIGIN`, or use `https://<domain>` for a
-custom domain. If the deploy asks for a `workers.dev` subdomain, set it once in the Cloudflare dashboard under
+`https://<worker name>.<subdomain>.workers.dev`. Open that address for the first run, the setup step on the sign-in
+page. That step stores the host as the default domain. For a custom domain, open `https://<domain>` instead.
+If the deploy asks for a `workers.dev` subdomain, set it once in the Cloudflare dashboard under
 **Workers & Pages**.
 
 Write the Worker values into `.env.worker` (`.gitignore` keeps every `.env.*` file out of the repository) and send
 them once: `pnpm exec wrangler secret bulk .env.worker --name my-inferative-dashboard`. The workflow does not set
 Worker secrets.
+
+### Older variables
+
+An install made before the root secret and the settings screens may still set these variables. A production boot logs
+one warning for each one that is still set: the line names the variable and where its value lives now, and never its
+value. A Worker keeps a secret until you delete it (`pnpm exec wrangler secret delete <name> --name
+my-inferative-dashboard`). Delete its line from `.env.worker` too, so that a later `wrangler secret bulk` does not set it
+again.
+
+| Variable | What the dashboard does with it | Retire it |
+| :-- | :-- | :-- |
+| `INFERATIVE_IDENTITY_SETUP_TOKEN` | It wins over the token of the root. | Delete it: the first-run step closes after its first run. |
+| `INFERATIVE_REALTIME_TICKET_SECRET` | It wins over the secret of the root. | Delete it. A ticket lives two minutes, so an open stream signs in again once. |
+| `INFERATIVE_BASE_SIGNED_ACCESS_SIGNING_KEYS` | It wins over the keys of the root. | Delete it from `.env` and the Worker at once. The links (preview, download, visualization) and the MCP session ids of outside agents that its keys signed stop working; an outside agent then connects again. |
+| `INFERATIVE_NOTIFICATIONS_CHAT_TELEGRAM_WEBHOOK_SECRET` | It wins over the secret of the root. | Delete it, then save the bot again on Settings › Organization › Credentials: the save registers the webhook with the secret of the root. |
+| `INFERATIVE_IDENTITY_SIGNING_KEY` | It wins over the kept key. | Delete it. The kept key then signs, and the key that it replaces still verifies for the access-token lifetime (one hour by default), so nobody is signed out. |
+| `INFERATIVE_IDENTITY_MFA_ENCRYPTION_KEY` | With the root set, it only decrypts. A two-factor secret is sealed again under the root's key at its next sign-in. | Run `pnpm mfa:reseal`. Delete the key only when the task reports `remaining: 0` and the outbox holds no account mail (an invitation, a password reset) queued before that reseal: the link of such a mail is sealed under a key of the MFA key, and a link that no key opens drops its mail. |
+| `INFERATIVE_ASSISTANT_HISTORY_ENCRYPTION_KEY` | With the root set, it only decrypts the model history that it sealed. | Keep it for as long as the install keeps that history, and until every agent session open before the change has ended: a runner session token derives from this key. The assistant's task `ResealModelHistory` seals the history again, but it runs only on a host that `heximon task run` compiles for Node, and this starter compiles for Cloudflare Workers only. |
+| `INFERATIVE_SECRETS_KEYS` | With the root set, each listed key only decrypts what it sealed. The key marked `derive` stays the root of the webhook secrets of agent bots. | Run `pnpm secrets:rewrap`: it seals every value again under the root's key and keeps the `derive` root. Delete the list when the task reports no value under a listed key. |
+| `INFERATIVE_MODELS_DEPLOYMENT_CONNECTIONS` | It applies only while the platform organization stores no model connection. | Add the connections on Settings › AI › Models of the platform organization, then delete it. |
+| `INFERATIVE_NOTIFICATIONS_CHAT_TELEGRAM_BOT_TOKEN`, `INFERATIVE_NOTIFICATIONS_CHAT_TELEGRAM_BOT_USERNAME` | They apply only while no bot is saved. | Save the bot on Settings › Organization › Credentials, then delete them. |
+| `INFERATIVE_IDENTITY_ORGANIZATION_SINGLE_ORGANIZATION` and the other organization rules, `INFERATIVE_IDENTITY_ORGANIZATION_DEFAULT_TIME_ZONE`, `INFERATIVE_LOCALIZATION_TIME_ZONE`, `INFERATIVE_APP_NAME` | They apply only until a platform administrator saves the setting. | Save the setting on Settings › Organization › Platform, then delete them. |
+| `INFERATIVE_NOTIFICATIONS_SENDER_EMAIL`, `INFERATIVE_NOTIFICATIONS_SENDER_NAME` | They apply only until a platform administrator saves the mail sender. | Save the address and the name under "Mail sender" on Settings › Organization › Platform, then delete them. |
+| `INFERATIVE_SEO_INDEX_NOW_ENABLED`, `INFERATIVE_AGENTS_PRICE_SYNC_ENABLED` | They apply only until a platform administrator saves the switch. | Save each switch under "Background work" on Settings › Organization › Platform, then delete them. |
+| `INFERATIVE_APP_ORIGIN`, `INFERATIVE_MODELS_PUBLIC_ONLY_EGRESS`, `INFERATIVE_BASE_PROCESSING_*` | Nothing reads them. | Delete them. |
+| `INFERATIVE_ASSISTANT_BACKEND_DRIVER` on the Worker | Nothing reads it: a production build calls models through the model connections. | Delete it from the Worker. Keep it in `.env` when a local run must call a model. |
 
 ## Cloudflare
 
@@ -176,7 +187,7 @@ setting that the config does not hold can be reset.
 
 Put the same region into `base.durable.locationHint` in the `$production` block of `inferative.config.ts`, as a
 Cloudflare location hint: `weur` for western Europe, `enam` for eastern North America, and so on. Cloudflare then
-creates the `Storage` room and the response cache room in that region. Without a hint, each room starts near the first
+creates the `Storage` room in that region. Without a hint, each room starts near the first
 caller that reaches it, and it never moves after that.
 
 The packages fix the names `saga-timer-queue`, `assistant-api-run`, `assistant-room-consultation` and
@@ -269,6 +280,17 @@ app on this machine in development mode, so it needs no Worker binding.
   ticks. So a sign-in that is in progress at the deploy starts again, a chat link code that is not used yet must be
   made again, and a job that resumes across ticks starts its pass again. The cached responses are lost too, and the
   next reads fill the cache again. The old objects stay in the account with their data, and nothing reads them.
+- **An install made before the deployment's domains.** The release adds the table `domains`. The dashboard answers
+  only on a host that the table holds, and a request on another host gets a `404` page. `pnpm db:generate` writes the
+  migration that creates the table. Put the statement below at the end of its `migration.sql`, after a
+  `--> statement-breakpoint`, with the host of your dashboard (`dashboard.example.com`) in place of `<host>`. It stores
+  that host as the default domain of an install that ran its first-run step, and it changes nothing on an install that
+  has a default domain. An install that did not run its first-run step yet needs no statement: the first-run step
+  stores the host that it is opened on.
+
+  ```sql
+  INSERT INTO "domains" ("id", "host", "organization_id", "kind", "is_primary", "status", "created_at", "updated_at", "version") SELECT 'default', '<host>', NULL, 'default', false, 'active', now(), now(), 1 WHERE EXISTS (SELECT 1 FROM "installations") ON CONFLICT DO NOTHING;
+  ```
 
 This starter has no preview Worker. The Durable Objects of the dashboard hold state that refers to the database: the
 decision timers, the assistant conversations, the runner connections and the applet versions. A preview Worker on
@@ -277,13 +299,12 @@ the same database would split that state.
 ## The first run
 
 1. Deploy, and set the Worker secrets.
-2. Open `https://<your dashboard>/`. The sign-in page shows the first-run step. Enter the setup token, your
-   e-mail address, a password and the name of the organization. You are the owner. With the token empty,
-   `pnpm exec inferative setup-token --env-file .env.worker` prints the token that the root gives.
-3. If you set `INFERATIVE_IDENTITY_SETUP_TOKEN`, delete it from the Worker: `pnpm exec wrangler secret delete INFERATIVE_IDENTITY_SETUP_TOKEN --name my-inferative-dashboard`.
-   Delete its line from `.env.worker` too, so that a later `wrangler secret bulk` does not set it again. A token of the
-   root needs no step: the first-run step closes after its first run.
-4. Enrol an authenticator on the Security page of your account.
+2. Open `https://<your dashboard>/`. The sign-in page shows the first-run step. The step stores the host that you
+   opened it on as the default domain of the deployment, so open it on the dashboard's own host. Enter the setup token, your
+   e-mail address, a password and the name of the organization. You are the owner.
+   `pnpm exec inferative setup-token --env-file .env.worker` prints the token that the root gives. The step closes
+   after its first run, so the token needs no step after it.
+3. Enrol an authenticator on the Security page of your account.
 
 The first run creates nothing else: no channel, no department, no project. Create them in the dashboard.
 
@@ -355,35 +376,23 @@ To send real mail, add a provider. For example, Resend:
 4. Sign in as an owner or an administrator of the platform organization (the first organization). Open Settings ›
    Organization › Credentials and save the Resend API key under "Mail provider key". The key goes into the secret
    store, and the server reads it each time it sends a mail. No Worker secret is needed for it.
-5. Set `INFERATIVE_NOTIFICATIONS_SENDER_EMAIL` to an address on a domain that Resend verified.
+5. On Settings › Organization › Platform, under "Mail sender", save an address on a domain that Resend verified.
 
 ## Telegram
 
 `ChatModule` links the Telegram chat of a member. The member gets the inbox items that need them in the chat, with
 answer buttons, and can write to their own assistant there. A member links the chat in Your account › Profile. The
-chat is off until the bot has a token and the server has a webhook secret:
-
-| Value | Where |
-| :-- | :-- |
-| The bot token | Settings › Organization › Credentials, "Member chat bot". Only an owner or an administrator of the platform organization (the first organization) sees the tab. The token goes into the secret store and is not shown again. |
-| `INFERATIVE_NOTIFICATIONS_CHAT_TELEGRAM_WEBHOOK_SECRET` | `node -p 'require("node:crypto").randomBytes(32).toString("base64url")'`. A secret of the Worker. Empty, it derives from `INFERATIVE_ROOT_SECRET`, and `pnpm exec inferative chat-webhook-secret --env-file .env.worker` prints it. |
+chat is off until a bot is saved on Settings › Organization › Credentials, "Member chat bot". Only an owner or an
+administrator of the platform organization (the first organization) sees the tab. The token goes into the secret store
+and is not shown again. The webhook secret derives from `INFERATIVE_ROOT_SECRET`.
 
 Create the bot with [BotFather](https://t.me/BotFather) (`/newbot`). Use a bot of its own for each dashboard: Telegram
 sends the updates of a bot to one address. When you save the token, the dashboard asks Telegram for the user name of
 the bot (`getMe`) and registers the webhook at `https://<your dashboard>/api/chat/telegram/webhook` with the webhook
-secret. If Telegram refuses one of the two calls, the screen says why and keeps nothing. While no token is saved,
-`INFERATIVE_NOTIFICATIONS_CHAT_TELEGRAM_BOT_TOKEN` applies, and you register its webhook yourself:
+secret. If Telegram refuses one of the two calls, the screen says why and keeps nothing.
 
-```sh
-curl -X POST "https://api.telegram.org/bot<token>/setWebhook" \
-  -d "url=https://<your dashboard>/api/chat/telegram/webhook" \
-  -d "secret_token=<webhook secret>" \
-  -d "max_connections=1" \
-  -d 'allowed_updates=["message","callback_query"]'
-```
-
-After a rotation of the root, register the webhook again with the new secret. Until then the dashboard still accepts
-the secret of `INFERATIVE_ROOT_SECRET_PREVIOUS`.
+After a rotation of the root, save the bot again: the save registers the webhook with the new secret. Until then the
+dashboard still accepts the secret of `INFERATIVE_ROOT_SECRET_PREVIOUS`.
 
 `max_connections=1` makes Telegram send the updates one at a time, in order. A local run on `localhost` gets no
 update: Telegram reaches only a public `https://` address.

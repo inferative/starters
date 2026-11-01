@@ -9,8 +9,8 @@ export default defineRuntimeConfig({
   serviceName: "dashboard",
 
   // The name that people see: the sender name of every mail, the title of the MCP server and the issuer that an
-  // authenticator app shows. Each of them can still take its own value (`notifications.sender.name`,
-  // `mcp.serverInfo.title`, `identity.mfa.issuer`).
+  // authenticator app shows. Each of them can still take its own value (a sender name saved on Settings >
+  // Organization > Platform, `mcp.serverInfo.title`, `identity.mfa.issuer`).
   app: { name: "My Inferative dashboard" },
 
   // The dashboard and the screens of every layer live at the root of the Worker, each at its own path
@@ -43,10 +43,9 @@ export default defineRuntimeConfig({
 
   mcp: { serverInfo: { name: "my-inferative-dashboard" } },
 
-  // The preamble of every assistant turn. The model comes from `INFERATIVE_ASSISTANT_BACKEND_DRIVER` and the model
-  // connections: the platform organization's, else `INFERATIVE_MODELS_DEPLOYMENT_CONNECTIONS` (`.env.example`). The
-  // packages give the assistant a note for each of their pages; add `playbooks: [{ route, guidance }]` here for a page
-  // of your own, or to replace a package note with the same route.
+  // The preamble of every assistant turn. The model comes from the model connections: the platform organization's,
+  // else `INFERATIVE_MODELS_DEPLOYMENT_CONNECTIONS` (README.md, "Older variables"). The packages give the assistant a note for each of their pages; add `playbooks: [{ route, guidance }]`
+  // here for a page of your own, or to replace a package note with the same route.
   assistant: {
     instructions:
       "You are the assistant of an Inferative dashboard. Answer concisely and concretely. Writes always pause " +
@@ -74,7 +73,7 @@ export default defineRuntimeConfig({
   // The deployed Worker runs many isolates, so the approval latches and the session cache keep their keys in one
   // Durable Object that every isolate reaches. The claims of command idempotency are in the database. `nuxt dev`
   // keeps process memory. Name the region of your database in `locationHint` (`weur`, `enam`, `apac` and so on):
-  // Cloudflare then creates that object and the response cache object there, so a call to them stays in one region.
+  // Cloudflare then creates that object there, so a call to it stays in one region.
   // `null` creates each one near its first caller. An object never moves after it is created.
   $production: {
     base: { storage: { driver: "durable-object" }, durable: { locationHint: null } },

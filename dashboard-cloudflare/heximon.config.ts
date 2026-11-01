@@ -11,7 +11,7 @@ import { inferativeServerPlugins } from "@inferative/base/compiler";
  * and in process under `nuxt dev`.
  * `schedule` puts the whole schedule tier on one platform cron trigger, the minute tick. The deploy platform comes from
  * the Nitro preset in `nuxt.config.ts`, not from this file. `cloudflare` holds the name and the bindings of the Worker;
- * the type import above gives the config type that key.
+ * the type import above gives the config type that key. `durable` names a Durable Object class that a deploy deletes.
  */
 export default defineHeximonConfig({
   plugins: [
@@ -51,5 +51,8 @@ export default defineHeximonConfig({
         entrypoint: "AttachmentTextEntrypoint"
       }
     ]
-  }
+  },
+  // The Durable Object that held the response cache before each isolate kept it in memory. A deploy deletes it and its
+  // data. Delete this entry when a deploy lists it under `removable_entries`.
+  durable: { deletedClasses: ["ResponseCacheRoomDO"] }
 });

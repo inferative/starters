@@ -1,5 +1,5 @@
 # A push to `main` runs the migrations and deploys the preview Worker.
-# Precondition: the live Worker exists. The preview Worker binds its response cache, so deploy live first.
+# Precondition: the live Worker exists. The preview Worker binds its Storage room, so deploy live first.
 name: Preview
 
 on:
@@ -50,14 +50,14 @@ jobs:
       # Heximon writes one Worker for each build. `CLOUDFLARE_ENV=preview` makes this build the preview Worker.
       - run: pnpm build:preview
 
-      # The preview Worker binds the response cache of the live Worker, so the live Worker must exist first.
+      # The preview Worker binds the Storage room of the live Worker, so the live Worker must exist first.
       # The config of this build is the preview Worker, so the check names the live Worker (`topLevelName`).
       - name: Check that the live Worker exists
         run: |
           live=$(node -p "require('./.output/server/wrangler.json').topLevelName")
           if ! output=$(pnpm exec wrangler deployments list --config .output/server/wrangler.json --name "$live" 2>&1); then
             echo "$output"
-            echo "::error::The live Worker is not deployed yet. The preview Worker uses its response cache. Run the Release workflow once (publish a release, or start it by hand), then run this workflow again."
+            echo "::error::The live Worker is not deployed yet. The preview Worker uses its Storage room. Run the Release workflow once (publish a release, or start it by hand), then run this workflow again."
             exit 1
           fi
         env:

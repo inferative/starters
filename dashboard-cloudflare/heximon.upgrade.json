@@ -108,6 +108,9 @@
         "event": "connectors.pull-request.merged"
       },
       {
+        "event": "connectors.push.received"
+      },
+      {
         "event": "content.entry.created"
       },
       {

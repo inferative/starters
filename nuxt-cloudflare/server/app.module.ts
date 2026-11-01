@@ -21,12 +21,9 @@ import {
   ContentPublishingJointModule,
   DashboardModule
 } from "@inferative/dashboard/server";
-import {
-  CloudflareFilesStoreInfrastructure,
-  CloudflareResponseCacheInfrastructure
-} from "@inferative/files/infrastructure/cloudflare";
+import { CloudflareFilesStoreInfrastructure } from "@inferative/files/infrastructure/cloudflare";
 import { FilesR2DevelopmentStore } from "@inferative/files/infrastructure/cloudflare/development";
-import { FilesModule } from "@inferative/files/server";
+import { FilesModule, IsolateResponseCacheModule } from "@inferative/files/server";
 import { FilesCapabilitiesModule } from "@inferative/files/capabilities";
 import { IdentityKeysModule, RenderSessionMiddleware } from "@inferative/identity/keys";
 import {
@@ -67,7 +64,9 @@ export class AppModule extends Module({
     PersistenceModule,
     BaseModule,
     CloudflareStorageInfrastructure,
-    CloudflareResponseCacheInfrastructure,
+    // The response cache, in the memory of each isolate within the `responseCache` bounds. An edit empties it in its
+    // isolate at once and in every other isolate within a second, through a hint in the `Storage` above.
+    IsolateResponseCacheModule,
     CloudflareFilesStoreInfrastructure,
     // The S3 path to the same bucket, for `nuxt dev`. `dev: true` drops it, and the AWS SDK, from a production build.
     { module: FilesR2DevelopmentStore, dev: true },

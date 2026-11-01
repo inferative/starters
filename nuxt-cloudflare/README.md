@@ -10,7 +10,7 @@ A push to `main` deploys a preview Worker. A published release deploys the live 
 | File | What it holds |
 | :-- | :-- |
 | `server/app.module.ts` | The modules of the site. Each line adds one capability. Delete a line to remove it. |
-| `server/app.module.ts` (cache) | `ChannelHttpCachePolicy` is the one HTTP policy: the response cache. One Durable Object holds the cache (`CloudflareResponseCacheInfrastructure`), so an edit in one isolate clears it for all. The preview Worker uses the cache of the live Worker. |
+| `server/app.module.ts` (cache) | `ChannelHttpCachePolicy` is the one HTTP policy: the response cache. Each isolate holds the cache in its memory (`IsolateResponseCacheModule`), at most 16 MB (`responseCache.maxBytes`), so a cached read makes no call outside the isolate. An edit empties it in its isolate at once and in every other isolate within a second, through a hint in the `Storage` room. |
 | `server/app.module.ts` (render) | `RenderSessionMiddleware` reads the visitor's session for a page render, and `RenderFrameFallthrough` gives the in-process reads of a render one memo and one channel scope. Keep both: without them every page renders as anonymous. |
 | `server/app.module.ts` (storage) | `CloudflareStorageInfrastructure` binds the key-value `Storage` to one Durable Object that every isolate reaches. The claims of command idempotency live in the database (the `command_claims` table of the base persistence), so a retried write runs once in every isolate. `inferative.config.ts` names the `durable-object` driver for a production build. |
 | `server/app.module.ts` (files) | `CloudflareFilesStoreInfrastructure` stores files in the R2 bucket. `FilesR2DevelopmentStore` reaches the same bucket under `nuxt dev`. |
@@ -19,7 +19,7 @@ A push to `main` deploys a preview Worker. A published release deploys the live 
 | `drizzle.config.ts` | The config of `drizzle-kit`. It names the database setup in use. |
 | `inferative.config.ts` | The values that this site changes from the package defaults. `dashboard.render: "client"` makes the browser draw the screens below `/admin`; the Worker still renders the site. The static assets answer each address below `/admin` with the shell file of the build, so a page document there does not start the Worker. The Worker is about 37 MiB of code (8.4 MiB with gzip, 757 modules), about 2.8 MiB less than with the server render of the screens. Cloudflare takes at most 64 MiB. |
 | `nuxt.config.ts` | The Nuxt layers, the Workers preset and the compatibility date. |
-| `heximon.config.ts` | The compiler plugins, the one cron trigger of the schedule, and the Worker name and bindings with the preview environment (`cloudflare`). The preview environment binds the response cache of the live Worker. |
+| `heximon.config.ts` | The compiler plugins, the one cron trigger of the schedule, and the Worker name and bindings with the preview environment (`cloudflare`). The preview environment binds the `Storage` room of the live Worker. `durable.deletedClasses` names the Durable Object of the earlier response cache, which a deploy deletes. |
 | `shared/site.ts` | The content types of the site (the page type and the menu type) and its sections. |
 | `app/` | The site: its layout, its catch-all page and the dashboard navigation. |
 | `deploy/assert-worker.mjs` | Stops a deploy script when the last build is the other Worker. |
@@ -59,7 +59,7 @@ in the environment.
 Replace every placeholder:
 
 - In `heximon.config.ts`, the Worker name (`cloudflare.name`). The preview Worker is `<name>-preview`.
-- In `heximon.config.ts`, the `scriptName` of `RESPONSE_CACHE_ROOM` in `environments.preview`: the name of the live Worker.
+- In `heximon.config.ts`, the `scriptName` of `STORAGE_ROOM` in `environments.preview`: the name of the live Worker.
 - In `heximon.config.ts`, the id of the Hyperdrive configuration (`wrangler hyperdrive create`). Keep its caching off.
 - In `heximon.config.ts`, the name of the R2 bucket for files (`FILES_BUCKET`). Create it once:
   `wrangler r2 bucket create <site>-files`. Both Workers and every local run use this one bucket.
@@ -81,27 +81,60 @@ Heximon writes one Worker for each build into `.output/server/wrangler.json`. `p
 `pnpm build:preview` sets `CLOUDFLARE_ENV=preview` and writes the preview Worker, with no `env` block.
 Each deploy script deploys the last build. `deploy/assert-worker.mjs` stops it with a message when the last build is the other Worker.
 
-Both Workers use one database, so they use one response cache. In `environments.preview` of `heximon.config.ts`,
-`RESPONSE_CACHE_ROOM` binds the Durable Object of the live Worker (`scriptName`): this one binding replaces the copy. An edit through either dashboard clears the one cache. The preview
-Worker also fills that cache with answers from the code on `main`; this is accepted. `RATE_LIMIT_ROOM` and `STORAGE_ROOM` stay per Worker.
+Both Workers use one database, so an edit through either one must reach the response cache of both. In
+`environments.preview` of `heximon.config.ts`, `STORAGE_ROOM` binds the `Storage` room of the live Worker
+(`scriptName`): this one binding replaces the copy. An edit through either dashboard writes the hint there, and every
+isolate of both Workers empties its response cache within a second. The preview Worker also keeps its other keys in
+that room (the approval latches and the short-lived keys), with the code on `main`; this is accepted. `RATE_LIMIT_ROOM`
+stays per Worker.
+
+A site whose deployed preview Worker still binds `RESPONSE_CACHE_ROOM` deploys the preview Worker first: Cloudflare
+does not delete `ResponseCacheRoomDO` of the live Worker while another Worker binds it.
 
 Set the secrets of each Worker once: `wrangler secret bulk`. The workflows do not set Worker secrets.
 
-`INFERATIVE_ROOT_SECRET` is the root secret: `node -p 'require("node:crypto").randomBytes(32).toString("base64")'`.
-The setup token and the signing keys of preview links derive from it when their own variables are empty. Use one root
-in `.env` and on both Workers: a preview link made on one must verify on the others. `pnpm exec inferative
-setup-token` prints the setup token of the root. To rotate the root, move the old value to
-`INFERATIVE_ROOT_SECRET_PREVIOUS` and set a new root: the links that the old root signed keep working, and new ones use
-the new root. Keep the previous value until every backup from before the rotation that you may still restore is gone
-(30 days with the archive bucket of "The nightly backup"), and do not rotate again before then: there is one slot for
-the previous root.
+Each Worker needs two secrets, and nothing else:
 
-The MFA key, which seals the secrets of two-factor sign-in, derives from the root too. A new site leaves
-`INFERATIVE_IDENTITY_MFA_ENCRYPTION_KEY` empty. A site that set it before the root keeps it: it then only decrypts, and
-each secret is sealed again under the root's key at its next sign-in. `pnpm mfa:reseal` seals every secret again at
-once, also the secret of a member who does not sign in. Keep the old key, and after a rotation the previous root,
-until the task reports `remaining: 0` and no account mail (an invitation, a password reset) queued before the change
-still waits in the outbox: its link is sealed under a key of the MFA key.
+| Variable | Make it with |
+| :-- | :-- |
+| `INFERATIVE_ROOT_SECRET` | `node -p 'require("node:crypto").randomBytes(32).toString("base64")'` |
+| `INFERATIVE_IDENTITY_SIGNING_KEY` | `node -p 'const k=require("node:crypto").generateKeyPairSync("ec",{namedCurve:"P-256"}).privateKey.export({format:"jwk"});Buffer.from(JSON.stringify({...k,alg:"ES256"})).toString("base64")'` |
+
+`INFERATIVE_ROOT_SECRET` is the root secret. The setup token, the signing keys of preview links and the MFA key, which
+seals the secrets of two-factor sign-in, derive from it. Use one root in `.env` and on both Workers: a preview link made
+on one must verify on the others, and the MFA key seals data in the shared database. `pnpm exec inferative
+setup-token` prints the setup token of the root. To rotate the root, move the old value to
+`INFERATIVE_ROOT_SECRET_PREVIOUS` and set a new root: the links that the old root signed keep working, its MFA key
+still decrypts, and new ones use the new root. Keep the previous value until `pnpm mfa:reseal` reports
+`remaining: 0`, no account mail (an invitation, a password reset) queued before the rotation still waits in the outbox,
+and every backup from before the rotation that you may still restore is gone (30 days with the archive bucket of "The
+nightly backup"). Do not rotate again before then: there is one slot for the previous root.
+
+The signing key may differ between `.env` and each Worker. This site keeps no secret store, so it does not make the
+key itself. The passkey settings and the links in mail come from the address of the request, so set none of them.
+The site runs one organization: `identity.organization.singleOrganization` in `inferative.config.ts`. A platform
+administrator can change the rule on Settings > Organization > Platform. The mail sender and the IndexNow switch are on
+the same tab, so set no variable for them.
+
+### Older variables
+
+A site made before the root secret and the settings screens may still set these. A production boot logs one warning
+for each one that is set, and says where its value lives now.
+
+| Variable | What the site does with it | Retire it |
+| :-- | :-- | :-- |
+| `INFERATIVE_IDENTITY_SETUP_TOKEN` | It wins over the token of the root. | Delete it: the first-run step then takes the token of the root. |
+| `INFERATIVE_BASE_SIGNED_ACCESS_SIGNING_KEYS` | It wins over the keys of the root. | Delete it from `.env` and both Workers at once. The preview links that its keys signed stop working. |
+| `INFERATIVE_IDENTITY_MFA_ENCRYPTION_KEY` | With the root set, it only decrypts. A secret is sealed again under the root's key at its next sign-in. | Run `pnpm mfa:reseal`. Delete the key only when the task reports `remaining: 0` and the outbox holds no account mail (an invitation, a password reset) queued before that reseal: the link of such a mail is sealed under a key of the MFA key, and a link that no key opens drops its mail. |
+| `INFERATIVE_IDENTITY_ORGANIZATION_SINGLE_ORGANIZATION` | It applies until a platform administrator saves the rule. | Delete it: `inferative.config.ts` sets the rule. |
+| `INFERATIVE_NOTIFICATIONS_SENDER_EMAIL`, `INFERATIVE_NOTIFICATIONS_SENDER_NAME` | They apply only until a platform administrator saves the mail sender. | Save the address and the name under "Mail sender" on Settings › Organization › Platform, then delete them from `.env` and both Workers. |
+| `INFERATIVE_SEO_INDEX_NOW_ENABLED` | It applies only until a platform administrator saves the switch. | Save the IndexNow switch under "Background work" on Settings › Organization › Platform, then delete it. |
+
+An older site may also set `INFERATIVE_IDENTITY_WEBAUTHN_RP_ID` and `INFERATIVE_IDENTITY_WEBAUTHN_ALLOWED_ORIGINS`.
+They still win over the address of the request, and no boot warns about them. A value that names a real domain (an RP
+ID of the parent domain, such as `example.com` for `admin.example.com`, or the origin of a preview or a native client)
+is a valid override: keep it, because the passkeys made under that RP ID stop working when it goes. Delete only the
+`http://localhost` placeholder of an older `.env.example` (a native origin such as `capacitor://localhost` stays), and never copy it to a Worker: it breaks passkeys there.
 
 ## Deploy
 
@@ -130,7 +163,7 @@ After an upgrade to a new release, run `pnpm db:generate` and commit the migrati
 
   On MySQL, write each name in backticks.
 
-Deploy the live Worker before the first preview deploy, because the preview Worker binds its response cache. Run
+Deploy the live Worker before the first preview deploy, because the preview Worker binds its `Storage` room. Run
 `pnpm build` and `pnpm deploy:live` once, or start the Release workflow by hand. Until the live Worker exists, the
 preview workflow stops before its deploy with a message that says this.
 
@@ -171,7 +204,7 @@ To send real mail, add a provider. For example, Resend:
 
 3. Add `MailModule` to `imports` in `server/app.module.ts`.
 4. Set `INFERATIVE_MAIL_RESEND_API_KEY` in `.env` and in the secrets of each Worker (`wrangler secret bulk`).
-5. Set `INFERATIVE_NOTIFICATIONS_SENDER_EMAIL` to an address on a domain that Resend verified.
+5. On Settings › Organization › Platform, under "Mail sender", save an address on a domain that Resend verified.
 
 ## Use MySQL
 

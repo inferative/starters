@@ -45,7 +45,8 @@ export default defineEventHandler(async (event) => {
 
     return page.items.map((entry) => ({
       title: entry.title,
-      slug: entry.document.slug,
+      // The key is not a literal, so the document may be of any type of `shared/site.ts`: a post has a slug.
+      slug: "slug" in entry.document ? entry.document.slug : undefined,
       publishedAt: entry.publishedAt
     }));
   } catch (failure) {
