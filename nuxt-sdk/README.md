@@ -31,9 +31,10 @@ Inferative dashboard where your role can manage channels and API keys.
    there. The sync key goes into `INFERATIVE_MANIFEST_TOKEN` only: no `NUXT_PUBLIC_` value may hold it, because the
    browser reads those.
 5. **Install.** Run `pnpm install`.
-6. **Sync the manifest.** Run `pnpm check:manifest` (no network, no key), then `pnpm sync:manifest`. The sync publishes
-   `shared/site.ts` to the channel and waits until the channel serves it. Exit code `0` means it does. Run the sync
-   again after each change to `shared/site.ts`.
+6. **Sync the manifest.** Run `pnpm check:manifest` (no network, no key), then `pnpm sync:manifest --first-sync`, then
+   `pnpm sync:manifest`. A sync publishes `shared/site.ts` to the channel and waits until the channel serves it. Exit
+   code `0` means it does. A new channel refuses `sharedSection` until it has served a first schema, so the first sync
+   uses `--first-sync` once. Run `pnpm sync:manifest` again after each change to `shared/site.ts`.
 7. **Write a page.** In the dashboard, open the content of the channel, create a page with a title, a slug and some
    sections, publish it, and place it in the page tree of the channel (the root page answers `/`).
 8. **Run it.** Run `pnpm dev` and open http://localhost:3000. The page tree names the page of each address, and the

@@ -6,10 +6,8 @@ import {
 } from "@inferative/applets/infrastructure/cloudflare";
 
 /**
- * The applet supervisor: one Durable Object for each applet. It builds the sources of an applet against the kit that
- * the build bakes (`cloudflare.forge.kit` in `heximon.config.ts`), keeps each version, and runs the live version.
- *
- * The capability catalog is empty, so no applet gets a grant: each applet runs with no call back to the dashboard.
+ * The applet supervisor: one Durable Object for each applet. It builds an applet against the baked kit and runs the
+ * live version. The capability catalog is empty, so no applet calls back to the dashboard.
  */
 export class HostAppletObject extends AppletObject {
   public constructor(ctx: AppletSupervisorContext, env: AppletSupervisorEnv) {

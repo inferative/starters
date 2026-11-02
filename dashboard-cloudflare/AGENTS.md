@@ -5,7 +5,7 @@ you write code. The Heximon DI rules differ from NestJS and Angular, and a wrong
 
 - Inferative skill: `npx skills add https://inferative.dev`. It covers the Nuxt layers, the dashboard, and the packages.
 - Heximon skill: `npx skills add https://heximon.dev`. It covers modules, controllers, and the compile-time DI.
-- Setup skill: `npx skills add https://inferative.dev --skill dashboard-setup`. It covers the deploy, the secrets and the daily work of this dashboard.
+- Setup and daily work: `SETUP.md`. The Inferative skill runs its steps: the deploy, the secrets and the daily work of this dashboard.
 
 ## Rules that matter here
 

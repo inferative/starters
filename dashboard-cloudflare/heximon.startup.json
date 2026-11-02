@@ -1392,6 +1392,14 @@
           "@inferative/taxonomy#PgTaxonomyPersistence",
           "@inferative/taxonomy#TaxonomyModule"
         ],
+        "cqrs:command CreateConnectorFlow#e43fde63": [
+          "@inferative/activity#ActivityRecorderModule",
+          "@inferative/activity#PgActivityPersistence",
+          "@inferative/connectors#ConnectorsModule",
+          "@inferative/connectors#PgConnectorsPersistence",
+          "@inferative/identity#OrganizationChartModule",
+          "@inferative/identity#PgIdentityPersistence"
+        ],
         "cqrs:command CreateEntry#183f0b68": [
           "@inferative/activity#ActivityRecorderModule",
           "@inferative/activity#PgActivityPersistence",
@@ -2515,6 +2523,14 @@
           "@inferative/notifications#PgInboxPersistence",
           "@inferative/notifications#PgNotificationsPersistence"
         ],
+        "cqrs:command GrantPartsToAgent#e43fde63": [
+          "@inferative/activity#ActivityRecorderModule",
+          "@inferative/activity#PgActivityPersistence",
+          "@inferative/connectors#ConnectorsModule",
+          "@inferative/connectors#PgConnectorsPersistence",
+          "@inferative/identity#OrganizationChartModule",
+          "@inferative/identity#PgIdentityPersistence"
+        ],
         "cqrs:command GrantRunLease#d285ce15": [
           "@inferative/activity#ActivityRecorderModule",
           "@inferative/activity#PgActivityPersistence",
@@ -2560,6 +2576,35 @@
           "@inferative/notifications#PgInboxPersistence",
           "@inferative/notifications#PgNotificationsPersistence"
         ],
+        "cqrs:command HandOverOutsideConversation#8a12a26d": [
+          "@inferative/activity#ActivityRecorderModule",
+          "@inferative/activity#PgActivityPersistence",
+          "@inferative/agents#AgentWakeTimersModule",
+          "@inferative/agents#AgentsModule",
+          "@inferative/agents#RunnerCapacityModule",
+          "@inferative/assistant#AssistantModule",
+          "@inferative/assistant#CloudflareAttachmentTextInfrastructure",
+          "@inferative/assistant#PgAssistantPersistence",
+          "@inferative/base#CloudflareRateLimitInfrastructure",
+          "@inferative/base#ModelProxiesModule",
+          "@inferative/base#PgDurableTimerTier",
+          "@inferative/base#PgModelConnectionsPersistence",
+          "@inferative/base#PgModelProxiesPersistence",
+          "@inferative/base#SecretStoreModelConnectionCredentialsModule",
+          "@inferative/channels#ChannelsModule",
+          "@inferative/channels#PgChannelsPersistence",
+          "@inferative/dashboard#AssistantPresenceJointModule",
+          "@inferative/dashboard#DashboardModule",
+          "@inferative/files#CloudflareFilesStoreInfrastructure",
+          "@inferative/files#IsolateResponseCacheModule",
+          "@inferative/files#PgFilesPersistence",
+          "@inferative/identity#IdentityModule",
+          "@inferative/identity#OrganizationChartModule",
+          "@inferative/identity#PgIdentityPersistence",
+          "@inferative/notifications#NotificationsModule",
+          "@inferative/notifications#PgInboxPersistence",
+          "@inferative/notifications#PgNotificationsPersistence"
+        ],
         "cqrs:command HoldRunnerRun#d285ce15": [
           "@inferative/activity#ActivityRecorderModule",
           "@inferative/activity#PgActivityPersistence",
@@ -2586,6 +2631,24 @@
           "@inferative/projects#PgProjectsPersistence",
           "@inferative/projects#ProjectsModule",
           "@inferative/search#PgSearchPersistence"
+        ],
+        "cqrs:command HoldTypeForManagement#183f0b68": [
+          "@inferative/activity#ActivityRecorderModule",
+          "@inferative/activity#PgActivityPersistence",
+          "@inferative/channels#ChannelsModule",
+          "@inferative/channels#PgChannelsPersistence",
+          "@inferative/content#ContentModule",
+          "@inferative/content#PgContentPersistence",
+          "@inferative/dashboard#AssistantTranslationJointModule",
+          "@inferative/dashboard#ContentPagesJointModule",
+          "@inferative/dashboard#ContentPublishingJointModule",
+          "@inferative/dashboard#ContentTaxonomyJointModule",
+          "@inferative/files#IsolateResponseCacheModule",
+          "@inferative/localization#PgLocalizationPersistence",
+          "@inferative/publishing#PgPublishingPersistence",
+          "@inferative/search#PgSearchPersistence",
+          "@inferative/visual-editing#PgVisualEditingPersistence",
+          "@inferative/visual-editing#VisualEditingModule"
         ],
         "cqrs:command IgnoreAuditProblem#23fee4b4": [
           "@inferative/activity#ActivityRecorderModule",
@@ -3097,6 +3160,35 @@
           "@inferative/memory#PgMemoryPersistence"
         ],
         "cqrs:command OpenChatTurn#8a12a26d": [
+          "@inferative/activity#ActivityRecorderModule",
+          "@inferative/activity#PgActivityPersistence",
+          "@inferative/agents#AgentWakeTimersModule",
+          "@inferative/agents#AgentsModule",
+          "@inferative/agents#RunnerCapacityModule",
+          "@inferative/assistant#AssistantModule",
+          "@inferative/assistant#CloudflareAttachmentTextInfrastructure",
+          "@inferative/assistant#PgAssistantPersistence",
+          "@inferative/base#CloudflareRateLimitInfrastructure",
+          "@inferative/base#ModelProxiesModule",
+          "@inferative/base#PgDurableTimerTier",
+          "@inferative/base#PgModelConnectionsPersistence",
+          "@inferative/base#PgModelProxiesPersistence",
+          "@inferative/base#SecretStoreModelConnectionCredentialsModule",
+          "@inferative/channels#ChannelsModule",
+          "@inferative/channels#PgChannelsPersistence",
+          "@inferative/dashboard#AssistantPresenceJointModule",
+          "@inferative/dashboard#DashboardModule",
+          "@inferative/files#CloudflareFilesStoreInfrastructure",
+          "@inferative/files#IsolateResponseCacheModule",
+          "@inferative/files#PgFilesPersistence",
+          "@inferative/identity#IdentityModule",
+          "@inferative/identity#OrganizationChartModule",
+          "@inferative/identity#PgIdentityPersistence",
+          "@inferative/notifications#NotificationsModule",
+          "@inferative/notifications#PgInboxPersistence",
+          "@inferative/notifications#PgNotificationsPersistence"
+        ],
+        "cqrs:command OpenOutsideTurn#8a12a26d": [
           "@inferative/activity#ActivityRecorderModule",
           "@inferative/activity#PgActivityPersistence",
           "@inferative/agents#AgentWakeTimersModule",
@@ -5662,6 +5754,14 @@
           "@inferative/notifications#PgInboxPersistence",
           "@inferative/notifications#PgNotificationsPersistence"
         ],
+        "cqrs:command RevokePartFromAgent#e43fde63": [
+          "@inferative/activity#ActivityRecorderModule",
+          "@inferative/activity#PgActivityPersistence",
+          "@inferative/connectors#ConnectorsModule",
+          "@inferative/connectors#PgConnectorsPersistence",
+          "@inferative/identity#OrganizationChartModule",
+          "@inferative/identity#PgIdentityPersistence"
+        ],
         "cqrs:command RevokePreviewToken#25de572a": [
           "@inferative/activity#ActivityRecorderModule",
           "@inferative/activity#PgActivityPersistence",
@@ -6257,6 +6357,8 @@
           "@inferative/publishing#PublishingModule",
           "@inferative/search#PgSearchPersistence"
         ],
+        "cqrs:command SetRevisionRetentionPolicy#287a0d02": [],
+        "cqrs:command SetScopePulledReading#287a0d02": [],
         "cqrs:command SetTaskWaiting#b345785d": [
           "@inferative/base#CloudflareRateLimitInfrastructure",
           "@inferative/identity#OrganizationChartModule",
@@ -8608,6 +8710,7 @@
         ],
         "cqrs:query GetRevision#287a0d02": [],
         "cqrs:query GetRevisionPurge#287a0d02": [],
+        "cqrs:query GetRevisionRetention#287a0d02": [],
         "cqrs:query GetRobots#23fee4b4": [
           "@inferative/activity#ActivityRecorderModule",
           "@inferative/activity#PgActivityPersistence",
@@ -9532,6 +9635,24 @@
           "@inferative/seo#PgSeoPersistence",
           "@inferative/seo#SeoModule"
         ],
+        "cqrs:query ListEntryRevisions#183f0b68": [
+          "@inferative/activity#ActivityRecorderModule",
+          "@inferative/activity#PgActivityPersistence",
+          "@inferative/channels#ChannelsModule",
+          "@inferative/channels#PgChannelsPersistence",
+          "@inferative/content#ContentModule",
+          "@inferative/content#PgContentPersistence",
+          "@inferative/dashboard#AssistantTranslationJointModule",
+          "@inferative/dashboard#ContentPagesJointModule",
+          "@inferative/dashboard#ContentPublishingJointModule",
+          "@inferative/dashboard#ContentTaxonomyJointModule",
+          "@inferative/files#IsolateResponseCacheModule",
+          "@inferative/localization#PgLocalizationPersistence",
+          "@inferative/publishing#PgPublishingPersistence",
+          "@inferative/search#PgSearchPersistence",
+          "@inferative/visual-editing#PgVisualEditingPersistence",
+          "@inferative/visual-editing#VisualEditingModule"
+        ],
         "cqrs:query ListEntryTallies#183f0b68": [
           "@inferative/activity#ActivityRecorderModule",
           "@inferative/activity#PgActivityPersistence",
@@ -10051,6 +10172,7 @@
           "@inferative/publishing#PublishingModule",
           "@inferative/search#PgSearchPersistence"
         ],
+        "cqrs:query ListRevisionRetention#287a0d02": [],
         "cqrs:query ListRevisions#25de572a": [
           "@inferative/activity#ActivityRecorderModule",
           "@inferative/activity#PgActivityPersistence",
@@ -10800,6 +10922,24 @@
           "@inferative/search#PgSearchPersistence"
         ],
         "cqrs:query ReadOrganizationLimits#d285ce15": [
+          "@inferative/activity#ActivityRecorderModule",
+          "@inferative/activity#PgActivityPersistence",
+          "@inferative/agents#AgentWakeTimersModule",
+          "@inferative/agents#AgentsModule",
+          "@inferative/agents#RunnerCapacityModule",
+          "@inferative/base#CloudflareRateLimitInfrastructure",
+          "@inferative/base#ModelProxiesModule",
+          "@inferative/base#PgDurableTimerTier",
+          "@inferative/base#PgModelConnectionsPersistence",
+          "@inferative/base#PgModelProxiesPersistence",
+          "@inferative/base#SecretStoreModelConnectionCredentialsModule",
+          "@inferative/identity#OrganizationChartModule",
+          "@inferative/identity#PgIdentityPersistence",
+          "@inferative/notifications#NotificationsModule",
+          "@inferative/notifications#PgInboxPersistence",
+          "@inferative/notifications#PgNotificationsPersistence"
+        ],
+        "cqrs:query ReadOrganizationPrices#d285ce15": [
           "@inferative/activity#ActivityRecorderModule",
           "@inferative/activity#PgActivityPersistence",
           "@inferative/agents#AgentWakeTimersModule",
@@ -15274,6 +15414,17 @@
           "@inferative/identity#OrganizationChartModule",
           "@inferative/identity#PgIdentityPersistence"
         ],
+        "http:preflight /api/connectors/flows": [
+          "@inferative/activity#ActivityRecorderModule",
+          "@inferative/activity#PgActivityPersistence",
+          "@inferative/channels#ChannelsModule",
+          "@inferative/channels#PgChannelsPersistence",
+          "@inferative/connectors#ConnectorsModule",
+          "@inferative/connectors#PgConnectorsPersistence",
+          "@inferative/files#IsolateResponseCacheModule",
+          "@inferative/identity#OrganizationChartModule",
+          "@inferative/identity#PgIdentityPersistence"
+        ],
         "http:preflight /api/connectors/github/installations/:": [
           "@inferative/activity#ActivityRecorderModule",
           "@inferative/activity#PgActivityPersistence",
@@ -15330,6 +15481,28 @@
           "@inferative/identity#PgIdentityPersistence"
         ],
         "http:preflight /api/connectors/google-drive/push": [
+          "@inferative/activity#ActivityRecorderModule",
+          "@inferative/activity#PgActivityPersistence",
+          "@inferative/channels#ChannelsModule",
+          "@inferative/channels#PgChannelsPersistence",
+          "@inferative/connectors#ConnectorsModule",
+          "@inferative/connectors#PgConnectorsPersistence",
+          "@inferative/files#IsolateResponseCacheModule",
+          "@inferative/identity#OrganizationChartModule",
+          "@inferative/identity#PgIdentityPersistence"
+        ],
+        "http:preflight /api/connectors/held-calls/:": [
+          "@inferative/activity#ActivityRecorderModule",
+          "@inferative/activity#PgActivityPersistence",
+          "@inferative/channels#ChannelsModule",
+          "@inferative/channels#PgChannelsPersistence",
+          "@inferative/connectors#ConnectorsModule",
+          "@inferative/connectors#PgConnectorsPersistence",
+          "@inferative/files#IsolateResponseCacheModule",
+          "@inferative/identity#OrganizationChartModule",
+          "@inferative/identity#PgIdentityPersistence"
+        ],
+        "http:preflight /api/connectors/held-calls/:/decision": [
           "@inferative/activity#ActivityRecorderModule",
           "@inferative/activity#PgActivityPersistence",
           "@inferative/channels#ChannelsModule",
@@ -15461,6 +15634,17 @@
           "@inferative/identity#OrganizationChartModule",
           "@inferative/identity#PgIdentityPersistence"
         ],
+        "http:preflight /api/connectors/settings/connections/:/agents": [
+          "@inferative/activity#ActivityRecorderModule",
+          "@inferative/activity#PgActivityPersistence",
+          "@inferative/channels#ChannelsModule",
+          "@inferative/channels#PgChannelsPersistence",
+          "@inferative/connectors#ConnectorsModule",
+          "@inferative/connectors#PgConnectorsPersistence",
+          "@inferative/files#IsolateResponseCacheModule",
+          "@inferative/identity#OrganizationChartModule",
+          "@inferative/identity#PgIdentityPersistence"
+        ],
         "http:preflight /api/connectors/settings/connections/:/audiences": [
           "@inferative/activity#ActivityRecorderModule",
           "@inferative/activity#PgActivityPersistence",
@@ -15495,6 +15679,17 @@
           "@inferative/identity#PgIdentityPersistence"
         ],
         "http:preflight /api/connectors/settings/connections/:/parts/:": [
+          "@inferative/activity#ActivityRecorderModule",
+          "@inferative/activity#PgActivityPersistence",
+          "@inferative/channels#ChannelsModule",
+          "@inferative/channels#PgChannelsPersistence",
+          "@inferative/connectors#ConnectorsModule",
+          "@inferative/connectors#PgConnectorsPersistence",
+          "@inferative/files#IsolateResponseCacheModule",
+          "@inferative/identity#OrganizationChartModule",
+          "@inferative/identity#PgIdentityPersistence"
+        ],
+        "http:preflight /api/connectors/settings/connections/:/parts/:/agents/:": [
           "@inferative/activity#ActivityRecorderModule",
           "@inferative/activity#PgActivityPersistence",
           "@inferative/channels#ChannelsModule",
@@ -15697,6 +15892,24 @@
           "@inferative/visual-editing#VisualEditingModule"
         ],
         "http:preflight /api/content/editor/entries/:/restore": [
+          "@inferative/activity#ActivityRecorderModule",
+          "@inferative/activity#PgActivityPersistence",
+          "@inferative/channels#ChannelsModule",
+          "@inferative/channels#PgChannelsPersistence",
+          "@inferative/content#ContentModule",
+          "@inferative/content#PgContentPersistence",
+          "@inferative/dashboard#AssistantTranslationJointModule",
+          "@inferative/dashboard#ContentPagesJointModule",
+          "@inferative/dashboard#ContentPublishingJointModule",
+          "@inferative/dashboard#ContentTaxonomyJointModule",
+          "@inferative/files#IsolateResponseCacheModule",
+          "@inferative/localization#PgLocalizationPersistence",
+          "@inferative/publishing#PgPublishingPersistence",
+          "@inferative/search#PgSearchPersistence",
+          "@inferative/visual-editing#PgVisualEditingPersistence",
+          "@inferative/visual-editing#VisualEditingModule"
+        ],
+        "http:preflight /api/content/editor/entries/:/revisions": [
           "@inferative/activity#ActivityRecorderModule",
           "@inferative/activity#PgActivityPersistence",
           "@inferative/channels#ChannelsModule",
@@ -16302,6 +16515,35 @@
           "@inferative/notifications#PgNotificationsPersistence"
         ],
         "http:preflight /api/conversations/:/:/counterpart": [
+          "@inferative/activity#ActivityRecorderModule",
+          "@inferative/activity#PgActivityPersistence",
+          "@inferative/agents#AgentWakeTimersModule",
+          "@inferative/agents#AgentsModule",
+          "@inferative/agents#RunnerCapacityModule",
+          "@inferative/assistant#AssistantModule",
+          "@inferative/assistant#CloudflareAttachmentTextInfrastructure",
+          "@inferative/assistant#PgAssistantPersistence",
+          "@inferative/base#CloudflareRateLimitInfrastructure",
+          "@inferative/base#ModelProxiesModule",
+          "@inferative/base#PgDurableTimerTier",
+          "@inferative/base#PgModelConnectionsPersistence",
+          "@inferative/base#PgModelProxiesPersistence",
+          "@inferative/base#SecretStoreModelConnectionCredentialsModule",
+          "@inferative/channels#ChannelsModule",
+          "@inferative/channels#PgChannelsPersistence",
+          "@inferative/dashboard#AssistantPresenceJointModule",
+          "@inferative/dashboard#DashboardModule",
+          "@inferative/files#CloudflareFilesStoreInfrastructure",
+          "@inferative/files#IsolateResponseCacheModule",
+          "@inferative/files#PgFilesPersistence",
+          "@inferative/identity#IdentityModule",
+          "@inferative/identity#OrganizationChartModule",
+          "@inferative/identity#PgIdentityPersistence",
+          "@inferative/notifications#NotificationsModule",
+          "@inferative/notifications#PgInboxPersistence",
+          "@inferative/notifications#PgNotificationsPersistence"
+        ],
+        "http:preflight /api/conversations/:/:/notes": [
           "@inferative/activity#ActivityRecorderModule",
           "@inferative/activity#PgActivityPersistence",
           "@inferative/agents#AgentWakeTimersModule",
@@ -22492,6 +22734,20 @@
           "@inferative/channels#PgChannelsPersistence",
           "@inferative/files#IsolateResponseCacheModule"
         ],
+        "http:preflight /api/revisions/retention": [
+          "@inferative/activity#ActivityRecorderModule",
+          "@inferative/activity#PgActivityPersistence",
+          "@inferative/channels#ChannelsModule",
+          "@inferative/channels#PgChannelsPersistence",
+          "@inferative/files#IsolateResponseCacheModule"
+        ],
+        "http:preflight /api/revisions/retention/:": [
+          "@inferative/activity#ActivityRecorderModule",
+          "@inferative/activity#PgActivityPersistence",
+          "@inferative/channels#ChannelsModule",
+          "@inferative/channels#PgChannelsPersistence",
+          "@inferative/files#IsolateResponseCacheModule"
+        ],
         "http:preflight /api/rooms/:/:": [
           "@inferative/activity#ActivityRecorderModule",
           "@inferative/activity#PgActivityPersistence",
@@ -25755,15 +26011,15 @@
       "entry": ".output/server/index.mjs",
       "start": {
         "files": 43,
-        "bytes": 3725831
+        "bytes": 3807475
       },
       "total": {
-        "files": 951,
-        "bytes": 16468069
+        "files": 960,
+        "bytes": 16732046
       },
       "files": {
         "_chunks/access-label.mjs": {
-          "bytes": 1555,
+          "bytes": 2003,
           "startBytes": 0
         },
         "_chunks/access-scope.mjs": {
@@ -25771,11 +26027,11 @@
           "startBytes": 0
         },
         "_chunks/acting-channel-administration-principal-resolver-[hash].mjs": {
-          "bytes": 21166,
+          "bytes": 21337,
           "startBytes": 0
         },
         "_chunks/acting-vocabulary.mjs": {
-          "bytes": 643,
+          "bytes": 690,
           "startBytes": 0
         },
         "_chunks/activity-capability.contribution-[hash].mjs": {
@@ -25823,7 +26079,11 @@
           "startBytes": 0
         },
         "_chunks/agent-messaging-contact.store-[hash].mjs": {
-          "bytes": 3889,
+          "bytes": 4140,
+          "startBytes": 0
+        },
+        "_chunks/agent-principals.repository-[hash].mjs": {
+          "bytes": 193,
           "startBytes": 0
         },
         "_chunks/agents-capability.contribution-[hash].mjs": {
@@ -25839,11 +26099,11 @@
           "startBytes": 0
         },
         "_chunks/agents.mjs": {
-          "bytes": 9200,
+          "bytes": 9277,
           "startBytes": 0
         },
         "_chunks/alerts-capability.contribution-[hash].mjs": {
-          "bytes": 1264,
+          "bytes": 1295,
           "startBytes": 0
         },
         "_chunks/api.mjs": {
@@ -25915,7 +26175,7 @@
           "startBytes": 0
         },
         "_chunks/assistant.mjs": {
-          "bytes": 8806,
+          "bytes": 9028,
           "startBytes": 0
         },
         "_chunks/attachment-text-result-[hash].mjs": {
@@ -25923,7 +26183,11 @@
           "startBytes": 0
         },
         "_chunks/attachments.controller-[hash].mjs": {
-          "bytes": 998334,
+          "bytes": 1029827,
+          "startBytes": 0
+        },
+        "_chunks/audience-key.mjs": {
+          "bytes": 1437,
           "startBytes": 0
         },
         "_chunks/audit-record.event-[hash].mjs": {
@@ -26023,7 +26287,7 @@
           "startBytes": 0
         },
         "_chunks/channel-key-approval-references-[hash].mjs": {
-          "bytes": 93183,
+          "bytes": 95875,
           "startBytes": 0
         },
         "_chunks/channel-manifest.repository-[hash].mjs": {
@@ -26039,7 +26303,7 @@
           "startBytes": 0
         },
         "_chunks/channel.repository-[hash].mjs": {
-          "bytes": 434,
+          "bytes": 517,
           "startBytes": 0
         },
         "_chunks/channels-capability.contribution-[hash].mjs": {
@@ -26047,7 +26311,7 @@
           "startBytes": 0
         },
         "_chunks/channels-config-[hash].mjs": {
-          "bytes": 5934,
+          "bytes": 6088,
           "startBytes": 0
         },
         "_chunks/channels.mjs": {
@@ -26055,7 +26319,7 @@
           "startBytes": 0
         },
         "_chunks/channels.statements-[hash].mjs": {
-          "bytes": 33605,
+          "bytes": 35250,
           "startBytes": 0
         },
         "_chunks/chart-capability-[hash].mjs": {
@@ -26087,7 +26351,7 @@
           "startBytes": 0
         },
         "_chunks/chat-capability.contribution-[hash].mjs": {
-          "bytes": 645,
+          "bytes": 663,
           "startBytes": 0
         },
         "_chunks/chat-delivery-targets-[hash].mjs": {
@@ -26107,7 +26371,7 @@
           "startBytes": 0
         },
         "_chunks/chat-reply.workflow-[hash].mjs": {
-          "bytes": 111630,
+          "bytes": 112356,
           "startBytes": 0
         },
         "_chunks/chat.mjs": {
@@ -26147,11 +26411,11 @@
           "startBytes": 0
         },
         "_chunks/commands-[hash].mjs": {
-          "bytes": 157617,
+          "bytes": 159580,
           "startBytes": 0
         },
         "_chunks/completion-allowance-debit.statement-[hash].mjs": {
-          "bytes": 87044,
+          "bytes": 87193,
           "startBytes": 0
         },
         "_chunks/config-[hash].mjs": {
@@ -26159,7 +26423,7 @@
           "startBytes": 0
         },
         "_chunks/config.mjs": {
-          "bytes": 224,
+          "bytes": 268,
           "startBytes": 0
         },
         "_chunks/config10.mjs": {
@@ -26235,7 +26499,7 @@
           "startBytes": 0
         },
         "_chunks/configured-assistant-model-factory-[hash].mjs": {
-          "bytes": 14912,
+          "bytes": 16612,
           "startBytes": 0
         },
         "_chunks/connection-machine-translator-[hash].mjs": {
@@ -26247,7 +26511,7 @@
           "startBytes": 0
         },
         "_chunks/connector-push-wakes-[hash].mjs": {
-          "bytes": 249733,
+          "bytes": 269508,
           "startBytes": 0
         },
         "_chunks/connector-triggers.schedule-[hash].mjs": {
@@ -26255,19 +26519,15 @@
           "startBytes": 0
         },
         "_chunks/connectors.mjs": {
-          "bytes": 4245,
+          "bytes": 5102,
           "startBytes": 0
         },
         "_chunks/content-capability.contribution-[hash].mjs": {
           "bytes": 288,
           "startBytes": 0
         },
-        "_chunks/content-entry-publication.commands-[hash].mjs": {
-          "bytes": 4671,
-          "startBytes": 0
-        },
         "_chunks/content-entry-write-[hash].mjs": {
-          "bytes": 12947,
+          "bytes": 13095,
           "startBytes": 0
         },
         "_chunks/content-hygiene.errors-[hash].mjs": {
@@ -26275,7 +26535,7 @@
           "startBytes": 0
         },
         "_chunks/content-restore-draft.reactor-[hash].mjs": {
-          "bytes": 9234,
+          "bytes": 9407,
           "startBytes": 0
         },
         "_chunks/content-seams-[hash].mjs": {
@@ -26283,19 +26543,23 @@
           "startBytes": 0
         },
         "_chunks/content-translation-source.family-[hash].mjs": {
-          "bytes": 528951,
+          "bytes": 539033,
+          "startBytes": 0
+        },
+        "_chunks/content-type-management.commands-[hash].mjs": {
+          "bytes": 4814,
           "startBytes": 0
         },
         "_chunks/content-unique-lookup.statements-[hash].mjs": {
-          "bytes": 64398,
+          "bytes": 66668,
           "startBytes": 0
         },
         "_chunks/content.mjs": {
-          "bytes": 6109,
+          "bytes": 6300,
           "startBytes": 0
         },
         "_chunks/control-[hash].mjs": {
-          "bytes": 786852,
+          "bytes": 791113,
           "startBytes": 0
         },
         "_chunks/conversation-coordinator-[hash].mjs": {
@@ -26331,7 +26595,7 @@
           "startBytes": 0
         },
         "_chunks/create-agents.module-[hash].mjs": {
-          "bytes": 66757,
+          "bytes": 67712,
           "startBytes": 0
         },
         "_chunks/create-applet-host-call-joint.module-[hash].mjs": {
@@ -26367,7 +26631,7 @@
           "startBytes": 0
         },
         "_chunks/create-assistant.module-[hash].mjs": {
-          "bytes": 50680,
+          "bytes": 51389,
           "startBytes": 0
         },
         "_chunks/create-audit.module-[hash].mjs": {
@@ -26375,7 +26639,7 @@
           "startBytes": 0
         },
         "_chunks/create-base.module-[hash].mjs": {
-          "bytes": 56286,
+          "bytes": 58908,
           "startBytes": 0
         },
         "_chunks/create-channels-capabilities.module-[hash].mjs": {
@@ -26383,7 +26647,7 @@
           "startBytes": 0
         },
         "_chunks/create-channels.module-[hash].mjs": {
-          "bytes": 20162,
+          "bytes": 20763,
           "startBytes": 0
         },
         "_chunks/create-chat-capabilities.module-[hash].mjs": {
@@ -26395,7 +26659,7 @@
           "startBytes": 0
         },
         "_chunks/create-chat.module-[hash].mjs": {
-          "bytes": 8696,
+          "bytes": 8717,
           "startBytes": 0
         },
         "_chunks/create-cloning-capabilities.module-[hash].mjs": {
@@ -26439,7 +26703,7 @@
           "startBytes": 0
         },
         "_chunks/create-connectors.module-[hash].mjs": {
-          "bytes": 18326,
+          "bytes": 19488,
           "startBytes": 0
         },
         "_chunks/create-content-capabilities.module-[hash].mjs": {
@@ -26463,7 +26727,7 @@
           "startBytes": 0
         },
         "_chunks/create-content.module-[hash].mjs": {
-          "bytes": 26918,
+          "bytes": 27721,
           "startBytes": 0
         },
         "_chunks/create-dashboard.module-[hash].mjs": {
@@ -26479,7 +26743,7 @@
           "startBytes": 0
         },
         "_chunks/create-decisions.module-[hash].mjs": {
-          "bytes": 23012,
+          "bytes": 23197,
           "startBytes": 0
         },
         "_chunks/create-files-capabilities.module-[hash].mjs": {
@@ -26487,7 +26751,7 @@
           "startBytes": 0
         },
         "_chunks/create-files.module-[hash].mjs": {
-          "bytes": 33925,
+          "bytes": 33993,
           "startBytes": 0
         },
         "_chunks/create-identity-actors.module-[hash].mjs": {
@@ -26507,7 +26771,7 @@
           "startBytes": 0
         },
         "_chunks/create-identity.module-[hash].mjs": {
-          "bytes": 86433,
+          "bytes": 86873,
           "startBytes": 0
         },
         "_chunks/create-indexing.module-[hash].mjs": {
@@ -26515,7 +26779,7 @@
           "startBytes": 0
         },
         "_chunks/create-isolate-response-cache.module-[hash].mjs": {
-          "bytes": 1408,
+          "bytes": 1394,
           "startBytes": 0
         },
         "_chunks/create-localization-capabilities.module-[hash].mjs": {
@@ -26547,7 +26811,7 @@
           "startBytes": 0
         },
         "_chunks/create-model-connections.module-[hash].mjs": {
-          "bytes": 6211,
+          "bytes": 6282,
           "startBytes": 0
         },
         "_chunks/create-model-proxies-capabilities.module-[hash].mjs": {
@@ -26563,7 +26827,7 @@
           "startBytes": 0
         },
         "_chunks/create-notifications.module-[hash].mjs": {
-          "bytes": 13703,
+          "bytes": 14597,
           "startBytes": 0
         },
         "_chunks/create-notify.module-[hash].mjs": {
@@ -26587,7 +26851,7 @@
           "startBytes": 0
         },
         "_chunks/create-pages.module-[hash].mjs": {
-          "bytes": 17471,
+          "bytes": 17534,
           "startBytes": 0
         },
         "_chunks/create-pg-activity-persistence.module-[hash].mjs": {
@@ -26595,7 +26859,7 @@
           "startBytes": 0
         },
         "_chunks/create-pg-agents-persistence.module-[hash].mjs": {
-          "bytes": 29513,
+          "bytes": 30001,
           "startBytes": 0
         },
         "_chunks/create-pg-applets-persistence.module-[hash].mjs": {
@@ -26603,11 +26867,11 @@
           "startBytes": 0
         },
         "_chunks/create-pg-assistant-persistence.module-[hash].mjs": {
-          "bytes": 11052,
+          "bytes": 11149,
           "startBytes": 0
         },
         "_chunks/create-pg-base-persistence.module-[hash].mjs": {
-          "bytes": 9513,
+          "bytes": 10130,
           "startBytes": 0
         },
         "_chunks/create-pg-channels-persistence.module-[hash].mjs": {
@@ -26627,7 +26891,7 @@
           "startBytes": 0
         },
         "_chunks/create-pg-content-persistence.module-[hash].mjs": {
-          "bytes": 4779,
+          "bytes": 5177,
           "startBytes": 0
         },
         "_chunks/create-pg-decisions-persistence.module-[hash].mjs": {
@@ -26671,7 +26935,7 @@
           "startBytes": 0
         },
         "_chunks/create-pg-notifications-persistence.module-[hash].mjs": {
-          "bytes": 1157,
+          "bytes": 2109,
           "startBytes": 0
         },
         "_chunks/create-pg-pages-persistence.module-[hash].mjs": {
@@ -26723,7 +26987,7 @@
           "startBytes": 0
         },
         "_chunks/create-projects.module-[hash].mjs": {
-          "bytes": 43032,
+          "bytes": 43068,
           "startBytes": 0
         },
         "_chunks/create-publishing-capabilities.module-[hash].mjs": {
@@ -26747,7 +27011,7 @@
           "startBytes": 0
         },
         "_chunks/create-realtime.module-[hash].mjs": {
-          "bytes": 6683,
+          "bytes": 6703,
           "startBytes": 0
         },
         "_chunks/create-runner-capacity.module-[hash].mjs": {
@@ -26763,7 +27027,7 @@
           "startBytes": 0
         },
         "_chunks/create-runners.module-[hash].mjs": {
-          "bytes": 36523,
+          "bytes": 36546,
           "startBytes": 0
         },
         "_chunks/create-sanitizer-releases-capabilities.module-[hash].mjs": {
@@ -26795,7 +27059,7 @@
           "startBytes": 0
         },
         "_chunks/create-seo.module-[hash].mjs": {
-          "bytes": 36559,
+          "bytes": 36569,
           "startBytes": 0
         },
         "_chunks/create-taxonomy-capabilities.module-[hash].mjs": {
@@ -26803,7 +27067,7 @@
           "startBytes": 0
         },
         "_chunks/create-taxonomy.module-[hash].mjs": {
-          "bytes": 21324,
+          "bytes": 21334,
           "startBytes": 0
         },
         "_chunks/create-visual-editing-capabilities.module-[hash].mjs": {
@@ -26811,7 +27075,7 @@
           "startBytes": 0
         },
         "_chunks/create-visual-editing.module-[hash].mjs": {
-          "bytes": 10446,
+          "bytes": 10456,
           "startBytes": 0
         },
         "_chunks/create-workspace-capabilities.module-[hash].mjs": {
@@ -26839,7 +27103,7 @@
           "startBytes": 0
         },
         "_chunks/decisions-config-[hash].mjs": {
-          "bytes": 1343,
+          "bytes": 838,
           "startBytes": 0
         },
         "_chunks/decisions.mjs": {
@@ -26847,7 +27111,7 @@
           "startBytes": 0
         },
         "_chunks/demo-[hash].mjs": {
-          "bytes": 8165,
+          "bytes": 8163,
           "startBytes": 0
         },
         "_chunks/demo-stand-in-[hash].mjs": {
@@ -26863,11 +27127,11 @@
           "startBytes": 0
         },
         "_chunks/domain-[hash].mjs": {
-          "bytes": 26556,
+          "bytes": 26008,
           "startBytes": 0
         },
         "_chunks/drizzle.mjs": {
-          "bytes": 42833,
+          "bytes": 44072,
           "startBytes": 0
         },
         "_chunks/durable-timers.mjs": {
@@ -26892,10 +27156,6 @@
         },
         "_chunks/editor.mjs": {
           "bytes": 39,
-          "startBytes": 0
-        },
-        "_chunks/email-transport-factory-[hash].mjs": {
-          "bytes": 65121,
           "startBytes": 0
         },
         "_chunks/entity-duplicator-registry.health-indicator-[hash].mjs": {
@@ -26951,11 +27211,11 @@
           "startBytes": 0
         },
         "_chunks/files.statements-[hash].mjs": {
-          "bytes": 45446,
+          "bytes": 45457,
           "startBytes": 0
         },
         "_chunks/folder-approval-references-[hash].mjs": {
-          "bytes": 218357,
+          "bytes": 219464,
           "startBytes": 0
         },
         "_chunks/hand-off-assembly-[hash].mjs": {
@@ -27003,11 +27263,11 @@
           "startBytes": 0
         },
         "_chunks/heximon19.mjs": {
-          "bytes": 1211,
+          "bytes": 1210,
           "startBytes": 0
         },
         "_chunks/heximon2.mjs": {
-          "bytes": 1946,
+          "bytes": 1947,
           "startBytes": 0
         },
         "_chunks/heximon20.mjs": {
@@ -27035,7 +27295,7 @@
           "startBytes": 0
         },
         "_chunks/heximon4.mjs": {
-          "bytes": 1454,
+          "bytes": 1455,
           "startBytes": 0
         },
         "_chunks/heximon5.mjs": {
@@ -27059,7 +27319,7 @@
           "startBytes": 0
         },
         "_chunks/hmac-realtime-ticket-signer-[hash].mjs": {
-          "bytes": 43599,
+          "bytes": 44037,
           "startBytes": 0
         },
         "_chunks/home-needs-you.mjs": {
@@ -27067,7 +27327,7 @@
           "startBytes": 0
         },
         "_chunks/identity-applet-host-call-tokens-[hash].mjs": {
-          "bytes": 16829,
+          "bytes": 17812,
           "startBytes": 0
         },
         "_chunks/identity-discovery.mjs": {
@@ -27099,7 +27359,7 @@
           "startBytes": 0
         },
         "_chunks/inbox-list-order-[hash].mjs": {
-          "bytes": 10480,
+          "bytes": 10743,
           "startBytes": 0
         },
         "_chunks/inbox-push-approval-items-[hash].mjs": {
@@ -27107,7 +27367,7 @@
           "startBytes": 0
         },
         "_chunks/inbox.commands-[hash].mjs": {
-          "bytes": 7669,
+          "bytes": 7765,
           "startBytes": 0
         },
         "_chunks/indexnow-switch-default-[hash].mjs": {
@@ -27119,7 +27379,7 @@
           "startBytes": 0
         },
         "_chunks/integration-events.wiring-[hash].mjs": {
-          "bytes": 11724,
+          "bytes": 12198,
           "startBytes": 0
         },
         "_chunks/isolate-deployment-domains-[hash].mjs": {
@@ -27127,7 +27387,7 @@
           "startBytes": 0
         },
         "_chunks/label-terms.mjs": {
-          "bytes": 2802,
+          "bytes": 1558,
           "startBytes": 0
         },
         "_chunks/locale-negotiation-policy-[hash].mjs": {
@@ -27179,7 +27439,7 @@
           "startBytes": 0
         },
         "_chunks/main.agents-module.loader.mjs": {
-          "bytes": 22658,
+          "bytes": 22957,
           "startBytes": 0
         },
         "_chunks/main.agents-questions-module.loader.mjs": {
@@ -27231,7 +27491,7 @@
           "startBytes": 0
         },
         "_chunks/main.channels-module.loader.mjs": {
-          "bytes": 4632,
+          "bytes": 4731,
           "startBytes": 0
         },
         "_chunks/main.chat-capabilities-module.loader.mjs": {
@@ -27243,7 +27503,7 @@
           "startBytes": 0
         },
         "_chunks/main.chat-module.loader.mjs": {
-          "bytes": 5112,
+          "bytes": 5268,
           "startBytes": 0
         },
         "_chunks/main.cloning-capabilities-module.loader.mjs": {
@@ -27287,7 +27547,7 @@
           "startBytes": 0
         },
         "_chunks/main.connectors-module.loader.mjs": {
-          "bytes": 5230,
+          "bytes": 5428,
           "startBytes": 0
         },
         "_chunks/main.content-capabilities-module.loader.mjs": {
@@ -27295,7 +27555,7 @@
           "startBytes": 0
         },
         "_chunks/main.content-module.loader.mjs": {
-          "bytes": 8138,
+          "bytes": 8260,
           "startBytes": 0
         },
         "_chunks/main.content-pages-joint-module.loader.mjs": {
@@ -27323,7 +27583,7 @@
           "startBytes": 0
         },
         "_chunks/main.decisions-module.loader.mjs": {
-          "bytes": 6298,
+          "bytes": 6612,
           "startBytes": 0
         },
         "_chunks/main.decisions-timers-module.loader.mjs": {
@@ -27355,7 +27615,7 @@
           "startBytes": 0
         },
         "_chunks/main.isolate-response-cache-module.loader.mjs": {
-          "bytes": 1095,
+          "bytes": 1038,
           "startBytes": 0
         },
         "_chunks/main.localization-capabilities-module.loader.mjs": {
@@ -27403,7 +27663,7 @@
           "startBytes": 0
         },
         "_chunks/main.notifications-module.loader.mjs": {
-          "bytes": 4434,
+          "bytes": 5194,
           "startBytes": 0
         },
         "_chunks/main.organization-chart-capabilities-module.loader.mjs": {
@@ -27431,7 +27691,7 @@
           "startBytes": 0
         },
         "_chunks/main.pg-agents-persistence.loader.mjs": {
-          "bytes": 7856,
+          "bytes": 7967,
           "startBytes": 0
         },
         "_chunks/main.pg-applets-persistence.loader.mjs": {
@@ -27459,7 +27719,7 @@
           "startBytes": 0
         },
         "_chunks/main.pg-content-persistence.loader.mjs": {
-          "bytes": 2325,
+          "bytes": 2469,
           "startBytes": 0
         },
         "_chunks/main.pg-decisions-persistence.loader.mjs": {
@@ -27499,7 +27759,7 @@
           "startBytes": 0
         },
         "_chunks/main.pg-notifications-persistence.loader.mjs": {
-          "bytes": 1024,
+          "bytes": 1288,
           "startBytes": 0
         },
         "_chunks/main.pg-pages-persistence.loader.mjs": {
@@ -27587,7 +27847,7 @@
           "startBytes": 0
         },
         "_chunks/main.runners-module.loader.mjs": {
-          "bytes": 14778,
+          "bytes": 14846,
           "startBytes": 0
         },
         "_chunks/main.sanitizer-releases-capabilities-module.loader.mjs": {
@@ -27663,7 +27923,7 @@
           "startBytes": 0
         },
         "_chunks/member-picture-owner-[hash].mjs": {
-          "bytes": 6827,
+          "bytes": 7549,
           "startBytes": 0
         },
         "_chunks/memory-capability.contribution-[hash].mjs": {
@@ -27679,7 +27939,7 @@
           "startBytes": 0
         },
         "_chunks/memory-session-tools-[hash].mjs": {
-          "bytes": 142730,
+          "bytes": 142770,
           "startBytes": 0
         },
         "_chunks/memory.mjs": {
@@ -27691,11 +27951,11 @@
           "startBytes": 0
         },
         "_chunks/model-[hash].mjs": {
-          "bytes": 10749,
+          "bytes": 11847,
           "startBytes": 0
         },
         "_chunks/model-connection-vocabulary.mjs": {
-          "bytes": 4825,
+          "bytes": 4973,
           "startBytes": 0
         },
         "_chunks/model-data-block.mjs": {
@@ -27703,7 +27963,7 @@
           "startBytes": 0
         },
         "_chunks/model-key-vocabulary-[hash].mjs": {
-          "bytes": 34565,
+          "bytes": 34622,
           "startBytes": 0
         },
         "_chunks/notification-sender-default-[hash].mjs": {
@@ -27735,7 +27995,23 @@
           "startBytes": 0
         },
         "_chunks/open-approvals-[hash].mjs": {
-          "bytes": 36728,
+          "bytes": 37285,
+          "startBytes": 0
+        },
+        "_chunks/operator-alert-columns.leaf-[hash].mjs": {
+          "bytes": 134,
+          "startBytes": 0
+        },
+        "_chunks/operator-alert-delivery-gate-[hash].mjs": {
+          "bytes": 76295,
+          "startBytes": 0
+        },
+        "_chunks/operator-alert-states-[hash].mjs": {
+          "bytes": 916,
+          "startBytes": 0
+        },
+        "_chunks/operator-alerts.mjs": {
+          "bytes": 559,
           "startBytes": 0
         },
         "_chunks/organization-ai-connections-[hash].mjs": {
@@ -27751,7 +28027,7 @@
           "startBytes": 0
         },
         "_chunks/organizations.repository-[hash].mjs": {
-          "bytes": 719,
+          "bytes": 668,
           "startBytes": 0
         },
         "_chunks/outside-agent-tool-withhold-[hash].mjs": {
@@ -27759,11 +28035,11 @@
           "startBytes": 0
         },
         "_chunks/outside-connection-views-[hash].mjs": {
-          "bytes": 23463,
+          "bytes": 23705,
           "startBytes": 0
         },
         "_chunks/page-approval-references-[hash].mjs": {
-          "bytes": 132304,
+          "bytes": 133325,
           "startBytes": 0
         },
         "_chunks/page-channel-settings.store-[hash].mjs": {
@@ -27815,7 +28091,7 @@
           "startBytes": 0
         },
         "_chunks/pg11.mjs": {
-          "bytes": 5489,
+          "bytes": 5545,
           "startBytes": 0
         },
         "_chunks/pg12.mjs": {
@@ -27827,7 +28103,7 @@
           "startBytes": 0
         },
         "_chunks/pg14.mjs": {
-          "bytes": 2085,
+          "bytes": 2371,
           "startBytes": 0
         },
         "_chunks/pg15.mjs": {
@@ -27851,7 +28127,7 @@
           "startBytes": 0
         },
         "_chunks/pg2.mjs": {
-          "bytes": 14797,
+          "bytes": 15045,
           "startBytes": 0
         },
         "_chunks/pg20.mjs": {
@@ -27875,7 +28151,7 @@
           "startBytes": 0
         },
         "_chunks/pg4.mjs": {
-          "bytes": 5290,
+          "bytes": 5387,
           "startBytes": 0
         },
         "_chunks/pg5.mjs": {
@@ -27891,7 +28167,7 @@
           "startBytes": 0
         },
         "_chunks/pg8.mjs": {
-          "bytes": 2111,
+          "bytes": 2249,
           "startBytes": 0
         },
         "_chunks/pg9.mjs": {
@@ -27903,11 +28179,11 @@
           "startBytes": 0
         },
         "_chunks/policy-errors.mjs": {
-          "bytes": 2402,
+          "bytes": 3107,
           "startBytes": 0
         },
         "_chunks/policy-vocabulary.mjs": {
-          "bytes": 2348,
+          "bytes": 2389,
           "startBytes": 0
         },
         "_chunks/presence-[hash].mjs": {
@@ -27931,7 +28207,7 @@
           "startBytes": 0
         },
         "_chunks/project-scope-use-[hash].mjs": {
-          "bytes": 286722,
+          "bytes": 287914,
           "startBytes": 0
         },
         "_chunks/projects-capability.contribution-[hash].mjs": {
@@ -27955,11 +28231,11 @@
           "startBytes": 0
         },
         "_chunks/publishing-content-workflow-status-reader-[hash].mjs": {
-          "bytes": 3724,
+          "bytes": 3776,
           "startBytes": 0
         },
         "_chunks/publishing-home.controller-[hash].mjs": {
-          "bytes": 184813,
+          "bytes": 185182,
           "startBytes": 0
         },
         "_chunks/publishing.mjs": {
@@ -27971,11 +28247,15 @@
           "startBytes": 0
         },
         "_chunks/push-records-[hash].mjs": {
-          "bytes": 80880,
+          "bytes": 80364,
+          "startBytes": 0
+        },
+        "_chunks/pushed-source.mjs": {
+          "bytes": 1036,
           "startBytes": 0
         },
         "_chunks/queries-[hash].mjs": {
-          "bytes": 94005,
+          "bytes": 94277,
           "startBytes": 0
         },
         "_chunks/realtime-capability-[hash].mjs": {
@@ -28022,6 +28302,10 @@
           "bytes": 833,
           "startBytes": 0
         },
+        "_chunks/recipient-addresses.mjs": {
+          "bytes": 720,
+          "startBytes": 0
+        },
         "_chunks/record-push-outcome.command-[hash].mjs": {
           "bytes": 47747,
           "startBytes": 0
@@ -28031,7 +28315,7 @@
           "startBytes": 0
         },
         "_chunks/repositories-[hash].mjs": {
-          "bytes": 87503,
+          "bytes": 88452,
           "startBytes": 0
         },
         "_chunks/repository-addresses-[hash].mjs": {
@@ -28039,7 +28323,7 @@
           "startBytes": 0
         },
         "_chunks/request-chart-rows-[hash].mjs": {
-          "bytes": 1051,
+          "bytes": 1105,
           "startBytes": 0
         },
         "_chunks/resource-metadata.controller-[hash].mjs": {
@@ -28047,7 +28331,7 @@
           "startBytes": 0
         },
         "_chunks/response-cache-config-[hash].mjs": {
-          "bytes": 3409,
+          "bytes": 2615,
           "startBytes": 0
         },
         "_chunks/response-cache-generation-[hash].mjs": {
@@ -28055,7 +28339,7 @@
           "startBytes": 0
         },
         "_chunks/restore-hold-wake-[hash].mjs": {
-          "bytes": 37644,
+          "bytes": 37892,
           "startBytes": 0
         },
         "_chunks/revision-diff.mjs": {
@@ -28075,7 +28359,7 @@
           "startBytes": 0
         },
         "_chunks/row-store-applied-tier-versions-[hash].mjs": {
-          "bytes": 193361,
+          "bytes": 200061,
           "startBytes": 0
         },
         "_chunks/row-store-chat-links-[hash].mjs": {
@@ -28095,7 +28379,7 @@
           "startBytes": 0
         },
         "_chunks/run-tool-backings-[hash].mjs": {
-          "bytes": 151294,
+          "bytes": 151979,
           "startBytes": 0
         },
         "_chunks/run-tool-input-[hash].mjs": {
@@ -28103,7 +28387,7 @@
           "startBytes": 0
         },
         "_chunks/run-tool-list-[hash].mjs": {
-          "bytes": 406414,
+          "bytes": 411555,
           "startBytes": 0
         },
         "_chunks/runner-block.store-[hash].mjs": {
@@ -28119,7 +28403,7 @@
           "startBytes": 0
         },
         "_chunks/runner-evidence.store-[hash].mjs": {
-          "bytes": 251,
+          "bytes": 284,
           "startBytes": 0
         },
         "_chunks/runner-hub-host-check-[hash].mjs": {
@@ -28143,7 +28427,7 @@
           "startBytes": 0
         },
         "_chunks/runner-reader-tools-[hash].mjs": {
-          "bytes": 252395,
+          "bytes": 258562,
           "startBytes": 0
         },
         "_chunks/runners.mjs": {
@@ -28191,11 +28475,11 @@
           "startBytes": 0
         },
         "_chunks/search-member-names.query-[hash].mjs": {
-          "bytes": 318229,
+          "bytes": 319321,
           "startBytes": 0
         },
         "_chunks/search-session-tools-[hash].mjs": {
-          "bytes": 9545,
+          "bytes": 9577,
           "startBytes": 0
         },
         "_chunks/search.mjs": {
@@ -28211,7 +28495,7 @@
           "startBytes": 0
         },
         "_chunks/seo-permission-catalog.contribution-[hash].mjs": {
-          "bytes": 459320,
+          "bytes": 456884,
           "startBytes": 0
         },
         "_chunks/seo-vocabulary-[hash].mjs": {
@@ -28235,7 +28519,7 @@
           "startBytes": 0
         },
         "_chunks/server12.mjs": {
-          "bytes": 4769,
+          "bytes": 4833,
           "startBytes": 0
         },
         "_chunks/server13.mjs": {
@@ -28251,11 +28535,11 @@
           "startBytes": 0
         },
         "_chunks/server16.mjs": {
-          "bytes": 7659,
+          "bytes": 7879,
           "startBytes": 0
         },
         "_chunks/server17.mjs": {
-          "bytes": 10171,
+          "bytes": 10167,
           "startBytes": 0
         },
         "_chunks/server18.mjs": {
@@ -28267,11 +28551,11 @@
           "startBytes": 0
         },
         "_chunks/server2.mjs": {
-          "bytes": 39606,
+          "bytes": 40140,
           "startBytes": 0
         },
         "_chunks/server20.mjs": {
-          "bytes": 55446,
+          "bytes": 83234,
           "startBytes": 0
         },
         "_chunks/server21.mjs": {
@@ -28299,11 +28583,11 @@
           "startBytes": 0
         },
         "_chunks/server4.mjs": {
-          "bytes": 29988,
+          "bytes": 30086,
           "startBytes": 0
         },
         "_chunks/server5.mjs": {
-          "bytes": 6200,
+          "bytes": 6399,
           "startBytes": 0
         },
         "_chunks/server6.mjs": {
@@ -28311,15 +28595,15 @@
           "startBytes": 0
         },
         "_chunks/server7.mjs": {
-          "bytes": 6810,
+          "bytes": 7152,
           "startBytes": 0
         },
         "_chunks/server8.mjs": {
-          "bytes": 9338,
+          "bytes": 9553,
           "startBytes": 0
         },
         "_chunks/server9.mjs": {
-          "bytes": 20490,
+          "bytes": 20587,
           "startBytes": 0
         },
         "_chunks/service-attachment-text-reader-[hash].mjs": {
@@ -28339,7 +28623,11 @@
           "startBytes": 0
         },
         "_chunks/session-redaction.statements-[hash].mjs": {
-          "bytes": 34676,
+          "bytes": 37103,
+          "startBytes": 0
+        },
+        "_chunks/session-tool-catalog-[hash].mjs": {
+          "bytes": 5622,
           "startBytes": 0
         },
         "_chunks/session-views-principal-[hash].mjs": {
@@ -28359,7 +28647,7 @@
           "startBytes": 0
         },
         "_chunks/stalled-session.commands-[hash].mjs": {
-          "bytes": 119474,
+          "bytes": 123155,
           "startBytes": 0
         },
         "_chunks/storage-factory-[hash].mjs": {
@@ -28391,11 +28679,11 @@
           "startBytes": 0
         },
         "_chunks/tasks.contract-[hash].mjs": {
-          "bytes": 62921,
+          "bytes": 63190,
           "startBytes": 0
         },
         "_chunks/taxonomy-approval-references-[hash].mjs": {
-          "bytes": 203358,
+          "bytes": 204979,
           "startBytes": 0
         },
         "_chunks/taxonomy-capability-[hash].mjs": {
@@ -28483,7 +28771,7 @@
           "startBytes": 0
         },
         "_chunks/validation-messages.mjs": {
-          "bytes": 3259,
+          "bytes": 3482,
           "startBytes": 0
         },
         "_chunks/visual-editing-capability-[hash].mjs": {
@@ -28499,11 +28787,11 @@
           "startBytes": 0
         },
         "_chunks/visual-editing-handoff.controller-[hash].mjs": {
-          "bytes": 82219,
+          "bytes": 82651,
           "startBytes": 0
         },
         "_chunks/visual-editing.errors-[hash].mjs": {
-          "bytes": 2379,
+          "bytes": 2066,
           "startBytes": 0
         },
         "_chunks/visual-editing.mjs": {
@@ -28515,7 +28803,7 @@
           "startBytes": 0
         },
         "_chunks/week-summary.schedule-[hash].mjs": {
-          "bytes": 15477,
+          "bytes": 15475,
           "startBytes": 0
         },
         "_chunks/workspace-capabilities.mjs": {
@@ -28524,6 +28812,10 @@
         },
         "_chunks/workspace.mjs": {
           "bytes": 1192,
+          "startBytes": 0
+        },
+        "_chunks/zoned-days.mjs": {
+          "bytes": 1200,
           "startBytes": 0
         },
         "_libs/_.mjs": {
@@ -28563,7 +28855,7 @@
           "startBytes": 0
         },
         "_libs/_13.mjs": {
-          "bytes": 9648,
+          "bytes": 9696,
           "startBytes": 0
         },
         "_libs/_14.mjs": {
@@ -28583,7 +28875,7 @@
           "startBytes": 0
         },
         "_libs/_18.mjs": {
-          "bytes": 428,
+          "bytes": 481,
           "startBytes": 0
         },
         "_libs/_19.mjs": {
@@ -28627,7 +28919,7 @@
           "startBytes": 0
         },
         "_libs/_28.mjs": {
-          "bytes": 1691,
+          "bytes": 1751,
           "startBytes": 0
         },
         "_libs/_29.mjs": {
@@ -28639,7 +28931,7 @@
           "startBytes": 0
         },
         "_libs/_30.mjs": {
-          "bytes": 4826,
+          "bytes": 4891,
           "startBytes": 0
         },
         "_libs/_31.mjs": {
@@ -28731,7 +29023,7 @@
           "startBytes": 0
         },
         "_libs/_51.mjs": {
-          "bytes": 1594,
+          "bytes": 1871,
           "startBytes": 0
         },
         "_libs/_52.mjs": {
@@ -28971,8 +29263,8 @@
           "startBytes": 318747
         },
         "_libs/_heximon/cache+[...].mjs": {
-          "bytes": 22796,
-          "startBytes": 22796
+          "bytes": 25369,
+          "startBytes": 25369
         },
         "_libs/_heximon/domain+[...].mjs": {
           "bytes": 14727,
@@ -28986,11 +29278,11 @@
           "bytes": 9851,
           "startBytes": 9851
         },
-        "_libs/_heximon/notifications/deferred~app.module~create-notifications.module-Im9vgrtH~server+[...].mjs": {
+        "_libs/_heximon/notifications/deferred~app.module~create-notifications.module-C_PC-Yob~server+[...].mjs": {
           "bytes": 23933,
           "startBytes": 0
         },
-        "_libs/_heximon/otel/deferred~create-identity.module-Cw7IAdZ9+[...].mjs": {
+        "_libs/_heximon/otel/deferred~create-identity.module-BEst9RiA+[...].mjs": {
           "bytes": 24498,
           "startBytes": 0
         },
@@ -28999,8 +29291,8 @@
           "startBytes": 13765
         },
         "_libs/_heximon/workflow+[...].mjs": {
-          "bytes": 44608,
-          "startBytes": 44608
+          "bytes": 45842,
+          "startBytes": 45842
         },
         "_libs/_nuxt/nitro-server.mjs": {
           "bytes": 2404,
@@ -29247,8 +29539,8 @@
           "startBytes": 0
         },
         "_libs/heximon__health.mjs": {
-          "bytes": 6984,
-          "startBytes": 6984
+          "bytes": 7769,
+          "startBytes": 7769
         },
         "_libs/heximon__health2.mjs": {
           "bytes": 738,
@@ -29279,8 +29571,8 @@
           "startBytes": 1345
         },
         "_libs/heximon__runtime.mjs": {
-          "bytes": 11977,
-          "startBytes": 11977
+          "bytes": 13243,
+          "startBytes": 13243
         },
         "_libs/heximon__saga.mjs": {
           "bytes": 968,
@@ -29487,11 +29779,11 @@
           "startBytes": 0
         },
         "_ssr/precomputed-[hash].mjs": {
-          "bytes": 42035,
+          "bytes": 42480,
           "startBytes": 0
         },
         "_ssr/ssr.mjs": {
-          "bytes": 22574,
+          "bytes": 22586,
           "startBytes": 0
         },
         "_ssr/styles-[hash].mjs": {
@@ -29499,8 +29791,8 @@
           "startBytes": 0
         },
         "_start.mjs": {
-          "bytes": 2553897,
-          "startBytes": 2553897
+          "bytes": 2629683,
+          "startBytes": 2629683
         },
         "index.mjs": {
           "bytes": 639,
