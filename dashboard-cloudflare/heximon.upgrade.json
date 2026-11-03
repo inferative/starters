@@ -168,6 +168,18 @@
         "event": "files.gallery.updated"
       },
       {
+        "event": "forms.follow-up.received"
+      },
+      {
+        "event": "forms.form.published"
+      },
+      {
+        "event": "forms.form.unpublished"
+      },
+      {
+        "event": "forms.submission.received"
+      },
+      {
         "event": "identity.account.deleted"
       },
       {
@@ -196,6 +208,9 @@
       },
       {
         "event": "identity.mfa.removed"
+      },
+      {
+        "event": "identity.organization.time-zone-changed"
       },
       {
         "event": "identity.passkey.counter-regression"
@@ -298,6 +313,12 @@
       },
       {
         "event": "localization.fill.requested"
+      },
+      {
+        "event": "location-cache.purge-requested"
+      },
+      {
+        "event": "memory.transcript.session-pending"
       },
       {
         "event": "notifications.chat.message.received"
@@ -416,6 +437,9 @@
       },
       {
         "slot": "lease-end"
+      },
+      {
+        "slot": "location-purge"
       },
       {
         "slot": "login-reset"

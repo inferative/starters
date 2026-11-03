@@ -64,6 +64,14 @@ Replace every placeholder:
 - In `heximon.config.ts`, the name of the R2 bucket for files (`FILES_BUCKET`). Create it once:
   `wrangler r2 bucket create <site>-files`. Both Workers and every local run use this one bucket.
 
+Run both Workers in the region of the database. Without a placement, a Worker runs in the data centre of each visitor,
+and every statement crosses to the database's region. Add the placement to the `nitro.cloudflare.wrangler` block of
+`nuxt.config.ts`, for example `placement: { mode: "targeted", region: "aws:eu-central-1" }`; the preview Worker takes
+it too. Set it there, not in the Cloudflare dashboard: each `wrangler deploy` writes the config of the Worker again.
+Put the matching Cloudflare location hint (`weur` for western Europe, `enam` for eastern North America, and so on) into
+`base.durable.locationHint` in the `$production` block of `inferative.config.ts`: Cloudflare then creates the `Storage`
+room there. Phase 5 of `SETUP.md` writes both from the database region.
+
 For local development, create an R2 access key in the Cloudflare dashboard: **R2 object storage**, then **Manage** beside
 **API Tokens**, then **Create Account API token** (an account token stays valid when a developer leaves; a user token
 does not). Enter a name, choose **Object Read & Write**, and apply it to specific buckets only: the bucket of the site.
@@ -118,20 +126,19 @@ the same tab, so set no variable for them.
 
 ### Older variables
 
-A site made before the root secret and the settings screens may still set these. A production boot logs one warning
-for each one that is set, and says where its value lives now.
+A site made before the root secret and the settings screens may still set these.
 
 | Variable | What the site does with it | Retire it |
 | :-- | :-- | :-- |
 | `INFERATIVE_IDENTITY_SETUP_TOKEN` | It wins over the token of the root. | Delete it: the first-run step then takes the token of the root. |
 | `INFERATIVE_BASE_SIGNED_ACCESS_SIGNING_KEYS` | It wins over the keys of the root. | Delete it from `.env` and both Workers at once. The preview links that its keys signed stop working. |
-| `INFERATIVE_IDENTITY_MFA_ENCRYPTION_KEY` | With the root set, it only decrypts. A secret is sealed again under the root's key at its next sign-in. | Run `pnpm mfa:reseal`. Delete the key only when the task reports `remaining: 0` and the outbox holds no account mail (an invitation, a password reset) queued before that reseal: the link of such a mail is sealed under a key of the MFA key, and a link that no key opens drops its mail. |
+| `INFERATIVE_IDENTITY_MFA_ENCRYPTION_KEY` | With the root set, the site does not read it. | Delete it. |
 | `INFERATIVE_IDENTITY_ORGANIZATION_SINGLE_ORGANIZATION` | It applies until a platform administrator saves the rule. | Delete it: `inferative.config.ts` sets the rule. |
 | `INFERATIVE_NOTIFICATIONS_SENDER_EMAIL`, `INFERATIVE_NOTIFICATIONS_SENDER_NAME` | They apply only until a platform administrator saves the mail sender. | Save the address and the name under "Mail sender" on Settings › Organization › Platform, then delete them from `.env` and both Workers. |
 | `INFERATIVE_SEO_INDEX_NOW_ENABLED` | It applies only until a platform administrator saves the switch. | Save the IndexNow switch under "Background work" on Settings › Organization › Platform, then delete it. |
 
 An older site may also set `INFERATIVE_IDENTITY_WEBAUTHN_RP_ID` and `INFERATIVE_IDENTITY_WEBAUTHN_ALLOWED_ORIGINS`.
-They still win over the address of the request, and no boot warns about them. A value that names a real domain (an RP
+They still win over the address of the request. A value that names a real domain (an RP
 ID of the parent domain, such as `example.com` for `admin.example.com`, or the origin of a preview or a native client)
 is a valid override: keep it, because the passkeys made under that RP ID stop working when it goes. Delete only the
 `http://localhost` placeholder of an older `.env.example` (a native origin such as `capacitor://localhost` stays), and never copy it to a Worker: it breaks passkeys there.

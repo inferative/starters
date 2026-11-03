@@ -63,9 +63,9 @@ export default defineRuntimeConfig({
   },
 
   // The deployed Worker runs many isolates, so command idempotency and the approval latches keep their keys in one
-  // Durable Object that every isolate reaches. `nuxt dev` keeps process memory. Name the region of your database in
-  // `locationHint` (`weur`, `enam`, `apac` and so on): Cloudflare then creates that object there. `null` creates it
-  // near its first caller. An object never moves after it is created.
+  // Durable Object that every isolate reaches. `nuxt dev` keeps process memory. Phase 5 of `SETUP.md` names the region
+  // of the database in `locationHint` (`weur`, `enam`, `apac` and so on): Cloudflare then creates that object there.
+  // `null` creates it near its first caller. An object never moves after it is created.
   $production: {
     base: { storage: { driver: "durable-object" }, durable: { locationHint: null } },
     // A deployed build writes each log line as one JSON line with the request id of its request. An error shows

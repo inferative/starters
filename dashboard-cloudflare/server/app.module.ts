@@ -24,6 +24,7 @@ import { AssistantConfigModule } from "@inferative/assistant/config";
 import { AssistantModule } from "@inferative/assistant/server";
 import { AssistantCapabilitiesModule } from "@inferative/assistant/capabilities";
 import {
+  CloudflareLocationCacheInfrastructure,
   CloudflareRateLimitInfrastructure,
   CloudflareSagaTimerInfrastructure,
   CloudflareStorageInfrastructure
@@ -43,6 +44,7 @@ import {
   HostCheckMiddleware,
   HostCheckSeat
 } from "@inferative/base/origin";
+import { LocationCacheMiddleware, LocationCacheModule } from "@inferative/base/location-cache";
 import { RenderFrameFallthrough } from "@inferative/base/render";
 import { WideEventConsoleDrain } from "@heximon/logging";
 import { ReadOnlyDispatchMiddleware, RequestReadsMiddleware } from "@inferative/base/request";
@@ -74,10 +76,15 @@ import {
 } from "@inferative/dashboard/server";
 import { DecisionsModule, DecisionsTimersModule } from "@inferative/decisions/server";
 import { DecisionsCapabilitiesModule } from "@inferative/decisions/capabilities";
-import { CloudflareFilesStoreInfrastructure } from "@inferative/files/infrastructure/cloudflare";
+import {
+  CloudflareFilesDeliveryCacheInfrastructure,
+  CloudflareFilesStoreInfrastructure
+} from "@inferative/files/infrastructure/cloudflare";
 import { FilesR2DevelopmentStore } from "@inferative/files/infrastructure/cloudflare/development";
 import { FilesModule, IsolateResponseCacheModule } from "@inferative/files/server";
 import { FilesCapabilitiesModule } from "@inferative/files/capabilities";
+import { FormsModule } from "@inferative/forms/server";
+import { FormsCapabilitiesModule } from "@inferative/forms/capabilities";
 import { IdentityKeysModule, RenderSessionMiddleware } from "@inferative/identity/keys";
 import {
   IdentityActorsModule,
@@ -144,6 +151,7 @@ import { PgConnectorsPersistence } from "@inferative/connectors/persistence/pg";
 import { PgContentPersistence } from "@inferative/content/persistence/pg";
 import { PgDecisionsPersistence } from "@inferative/decisions/persistence/pg";
 import { PgFilesPersistence } from "@inferative/files/persistence/pg";
+import { PgFormsPersistence } from "@inferative/forms/persistence/pg";
 import { PgIdentityPersistence } from "@inferative/identity/persistence/pg";
 import { PgLocalizationPersistence } from "@inferative/localization/persistence/pg";
 import { PgMemoryPersistence } from "@inferative/memory/persistence/pg";
@@ -161,20 +169,16 @@ import { PgSeoPersistence } from "@inferative/seo/persistence/pg";
 import { PgTaxonomyPersistence } from "@inferative/taxonomy/persistence/pg";
 import { PgVisualEditingPersistence } from "@inferative/visual-editing/persistence/pg";
 import { PgWorkspacePersistence } from "@inferative/workspace/persistence/pg";
-import { DemoSeedModule } from "./demo/demo-seed.module";
 import { PersistenceModule } from "./persistence/pg/persistence.module";
 
 /**
- * The root module of this dashboard. Each line of `imports` adds one capability: delete a line to remove it, and add
- * the module of another package, its persistence module (and its layer in `nuxt.config.ts`) to add one.
+ * The root module of this dashboard. Each line of `imports` adds one capability: delete a line to remove it.
  * `inferative.config.ts` holds the values.
  */
 export class AppModule extends Module({
   imports: [
-    // The connection, the migrations and the stores of the assistant's API runs.
     PersistenceModule,
-    // The Postgres persistence module of each package. They are lines of this module: a first request then loads only
-    // the persistence modules that it uses.
+    // One line per package, so a first request loads only the persistence modules that it uses.
     PgActivityPersistence,
     PgAgentsPersistence,
     PgAppletsPersistence,
@@ -191,6 +195,7 @@ export class AppModule extends Module({
     PgContentPersistence,
     PgDecisionsPersistence,
     PgFilesPersistence,
+    PgFormsPersistence,
     PgIdentityPersistence,
     PgChatPersistence,
     PgInboxPersistence,
@@ -207,33 +212,28 @@ export class AppModule extends Module({
     PgVisualEditingPersistence,
     PgWorkspacePersistence,
     BaseModule,
-    // The secret store.
     SecretsModule,
-    // The calls through the model proxies (connections at a typed address), which the assistant and the agents reach
-    // models through.
     ModelProxiesModule,
     ModelProxiesCapabilitiesModule,
-    // The model connections, with each credential in the secret store, and the move of the keys and proxies from
-    // before them.
     SecretStoreModelConnectionCredentialsModule,
     ModelConnectionsModule,
-    // The sanitizer releases an organization keeps, and Settings › AI › Sanitizers.
     SanitizerReleasesModule,
     SanitizerReleasesCapabilitiesModule,
-    // The one `Storage` of the Worker, in a Durable Object that every isolate reaches: the claims of command
-    // idempotency, the approval latches and the session cache.
+    // The one `Storage` of the Worker: a Durable Object that every isolate reaches.
     CloudflareStorageInfrastructure,
-    // The response cache, in the memory of each isolate within the `responseCache` bounds. An edit empties it in its
-    // isolate at once and in every other isolate within a second, through a hint in the `Storage` above.
+    // The response cache lives in each isolate; an edit empties every isolate through a hint in the `Storage`.
     IsolateResponseCacheModule,
-    // The R2 bucket of the files and of the large assistant rows.
+    // The public reads stay in each location of the platform, purged by tag; the platform settings switch it on.
+    LocationCacheModule,
+    CloudflareLocationCacheInfrastructure,
     CloudflareFilesStoreInfrastructure,
-    // The S3 path to the same bucket, for `nuxt dev`. `dev: true` drops it, and the AWS SDK, from a production build.
+    // The S3 path to the R2 bucket for `nuxt dev`. `dev: true` keeps it, and the AWS SDK, out of a production build.
     { module: FilesR2DevelopmentStore, dev: true },
+    // The Workers Cache keeps public file bytes (`server/files-delivery.entrypoint.ts`); a change purges them by tag.
+    CloudflareFilesDeliveryCacheInfrastructure,
     CloudflareRateLimitInfrastructure,
     CloudflareSagaTimerInfrastructure,
     CloudflareAssistantInfrastructure,
-    // The text of attached PDF and Office files, read in the applets Worker over the `ATTACHMENT_TEXT` binding.
     CloudflareAttachmentTextInfrastructure,
     CloudflareRealtimeInfrastructure,
     IdentityKeysModule,
@@ -252,12 +252,9 @@ export class AppModule extends Module({
     ActivityCapabilitiesModule,
     NotificationsModule,
     NotificationsCapabilitiesModule,
-    // The screen of the mail provider's key, for an operator of the platform organization.
     MailKeySettingsModule,
-    // A member's linked Telegram chat: on once the three `INFERATIVE_NOTIFICATIONS_CHAT_TELEGRAM_*` values are set.
     ChatModule,
     ChatCapabilitiesModule,
-    // The timer that sends a chat item at its slot in the chat's pace (one message a second).
     ChatDeliveryTimersModule,
     SearchModule,
     SearchCapabilitiesModule,
@@ -297,12 +294,10 @@ export class AppModule extends Module({
     DecisionsTimersModule,
     DecisionsModule,
     DecisionsCapabilitiesModule,
-    // What agents and assistants remember: the memory library, its proposals and search, and the data map.
     MemoryModule,
     MemoryCapabilitiesModule,
-    // The organization's forge connections, its outside connections (My connections, Settings › Organization ›
-    // Connections) and the webhook route of the deployment's GitHub App, which reports a failed CI check to the
-    // agent that pushed. The App is a host setting: README.md, "GitHub".
+    FormsModule,
+    FormsCapabilitiesModule,
     ConnectorsModule,
     ConnectorTriggersModule,
     AgentsModule,
@@ -313,65 +308,55 @@ export class AppModule extends Module({
     RunnerCapacityModule,
     RunnerPushModule,
     RunnerLeaseTimersModule,
-    // The timer that starts an agent's retry at the instant it waits for, not up to a minute late at the sweep.
     AgentWakeTimersModule,
     ContentPagesJointModule,
     ContentPublishingJointModule,
     ContentTaxonomyJointModule,
     AssistantPresenceJointModule,
-    // The `assistant` section on its own, which the translation and opinion reviewer joints read: their first read
-    // then loads this module and not the whole assistant.
+    // The `assistant` section alone: the joints below read it without loading the whole assistant.
     AssistantConfigModule,
     AssistantTranslationJointModule,
     AssistantOpinionReviewerJointModule,
-    AppletHostCallJointModule,
-    // The demo data of a test install, which `heximon task run DemoSeedModule SeedDemo` loads. No route runs it.
-    DemoSeedModule
+    AppletHostCallJointModule
   ],
-  // The streams and the CORS preflights, which the middlewares do not wrap, check the host through this check.
+  // The streams and the CORS preflights, which no middleware wraps, check the host through this.
   contributes: [{ to: HostCheckSeat, useClass: HostCheck }],
   http: {
-    // The host check comes first: a request on a host that the deployment does not serve does nothing else. A tool
-    // call of a route that declares itself a read runs in a read transaction, so a write in it fails.
-    middlewares: [HostCheckMiddleware, RequestReadsMiddleware, ReadOnlyDispatchMiddleware],
+    // A public read that a location keeps is answered first. Then the host check. A tool call of a read route runs
+    // in a read transaction.
+    middlewares: [
+      LocationCacheMiddleware,
+      HostCheckMiddleware,
+      RequestReadsMiddleware,
+      ReadOnlyDispatchMiddleware
+    ],
     headers: [ChannelVaryHeaderContributor]
   },
   app: {
-    // The API that the Vue app calls (`INFERATIVE_API_*`) and the locale facts (`INFERATIVE_LOCALIZATION_*`): the
-    // server render and the browser read one value.
+    // The server render and the browser read one value of these sections.
     config: { public: ["api", "localization"] },
-    // Each command handler runs in a transaction on this database; a nested one joins it.
     cqrs: { autoTransaction: Database },
-    // A single-message handler runs in the tenant of its event: one seed stores it in the message frame, for every channel.
     context: {
       seeds: [TenantSeed]
     },
     http: {
-      // A page on a host that the deployment does not serve is refused first. A page render starts in the negotiated
-      // locale and from the visitor's session. The render scope opens before them, so the session read already goes
-      // through the memo of the render.
+      // The render scope opens before the locale and the session, so the session read goes through its memo.
       fallthrough: [
         HostCheckFallthrough,
         RenderFrameFallthrough,
         LocaleNegotiationFallthrough,
         RenderSessionMiddleware
       ],
-      // A request under the API mount that no route serves answers a problem document, never a page.
       owns: ["/api"],
-      // The websites of the channels live on other origins: they call the channel routes, and the visual editor
-      // frames them. `INFERATIVE_CHANNELS_ADMINISTRATION_ORIGINS` lists the origins.
+      // The channel websites call the channel routes from other origins, and the visual editor frames them.
       cors: ChannelAdministrationCorsPolicy,
       securityHeaders: ChannelFrameSourcePolicy,
       cache: ChannelHttpCachePolicy,
-      // A route's declared scopes enforce nothing until a guard reads them. The build fails for a composed package
-      // that records no such check.
       scopeEnforcer: RouteScopeGuard,
       requireCheckedPackages: true,
-      // The server mints every request id: a client's `x-request-id` or `traceparent` does not choose it.
+      // The server mints every request id: a client header does not choose it.
       requestId: { trustIncoming: false }
     },
-    // One wide event for each request that a route serves, with its request id, written as one JSON line to the
-    // standard output (Workers Logs on Cloudflare).
     logging: {
       drains: [new WideEventConsoleDrain()],
       wideEvents: true
