@@ -9,3 +9,6 @@ dist
 .env
 .env.*
 !.env.example
+
+# The progress file of the setup: ids and names, no secrets, local to one machine
+.inferative

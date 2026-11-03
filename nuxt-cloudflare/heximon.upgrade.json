@@ -108,6 +108,9 @@
         "event": "identity.mfa.removed"
       },
       {
+        "event": "identity.organization.time-zone-changed"
+      },
+      {
         "event": "identity.passkey.counter-regression"
       },
       {
