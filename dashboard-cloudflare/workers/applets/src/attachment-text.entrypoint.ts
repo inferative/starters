@@ -6,9 +6,8 @@ import {
 import type { AttachmentTextSourceValue } from "@inferative/assistant/server";
 
 /**
- * The reader of the text of attached PDF and Office files. The dashboard Worker calls it over its `ATTACHMENT_TEXT`
- * service binding, and it reads each file in a Dynamic Worker of the Worker Loader, with no network and no binding.
- * `vite.config.ts` adds it to the exports of the Worker.
+ * Reads the text of attached PDF and Office files for the dashboard Worker, each in a Dynamic Worker with no network and
+ * no binding.
  */
 export class AttachmentTextEntrypoint extends WorkerEntrypoint<AttachmentTextSandboxEnv> {
   /**

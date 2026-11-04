@@ -51,6 +51,9 @@
         "event": "content.schema.synced"
       },
       {
+        "event": "entity.removed"
+      },
+      {
         "event": "files.file.deleted"
       },
       {
@@ -106,6 +109,9 @@
       },
       {
         "event": "identity.mfa.removed"
+      },
+      {
+        "event": "identity.organization.time-zone-changed"
       },
       {
         "event": "identity.passkey.counter-regression"

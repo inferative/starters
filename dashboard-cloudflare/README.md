@@ -4,15 +4,15 @@ The Inferative dashboard as one Nuxt app on two Cloudflare Workers: the dashboar
 "The two Workers"). The dashboard is at the root of the dashboard Worker, `/`.
 It holds every capability of Inferative: projects and agents, the inbox and decisions, the assistant, memory,
 the linked Telegram chat of a member, the connections to GitHub and to outside accounts, content, pages, files,
-publishing, SEO, the visual editor, translations and categories, channels and realtime.
+publishing, SEO, the visual editor, translations and categories, forms, channels and realtime.
 
 The database is Postgres, reached through Cloudflare Hyperdrive. A published release deploys both Workers.
 
 The first run starts empty. You create the owner account and the organization at `/` with the setup token, and
 everything else in the dashboard.
 
-An agent can do the setup for you: the skill `dashboard-setup` (`npx skills add https://inferative.dev --skill
-dashboard-setup`) runs each step below and stops at each browser step.
+An agent can do the setup for you: the Inferative skill (`npx skills add https://inferative.dev --global`) runs the
+steps of `SETUP.md` and stops at each browser step.
 
 ## The files
 
@@ -20,16 +20,15 @@ dashboard-setup`) runs each step below and stops at each browser step.
 | :-- | :-- |
 | `server/app.module.ts` | The modules of the dashboard. Each line adds one capability. Delete a line to remove it. |
 | `server/app.module.ts` (Cloudflare) | The Durable Objects of the Worker: the key-value `Storage` (`CloudflareStorageInfrastructure`), the rate limits, the timers (decisions, runner leases, agent wakes and chat deliveries), the assistant conversations and the realtime streams. `inferative.config.ts` names the `durable-object` driver for a production build, and the Worker refuses to boot on any other store. The response cache that every package of the Worker shares (`IsolateResponseCacheModule`) is in the memory of each isolate, at most 16 MB (`responseCache.maxBytes`); an edit empties it in every isolate within a second, through a hint in the `Storage`. |
-| `server/app.module.ts` (files) | `CloudflareFilesStoreInfrastructure` stores the files and the large assistant rows in the R2 bucket. `FilesR2DevelopmentStore` reaches the same bucket under `nuxt dev`. |
-| `server/demo/` | The demo data of a test install (`pnpm demo:seed`, see "The first run"). Delete the folder and its line in `server/app.module.ts` to leave it out. |
+| `server/app.module.ts` (files) | `CloudflareFilesStoreInfrastructure` stores the files and the large assistant rows in the R2 bucket. `FilesR2DevelopmentStore` reaches the same bucket under `nuxt dev`. `CloudflareFilesDeliveryCacheInfrastructure` purges the Workers Cache of public files ("File cache"). |
 | `server/persistence/pg/` | The Postgres setup: the connection, the config, the persistence module and `schema.ts`. |
 | `workers/applets/` | The applets Worker: the applet supervisor and its build. See "Applets" and "The two Workers". |
 | `drizzle.config.ts` | The config of `drizzle-kit`. |
 | `inferative.config.ts` | The values that this dashboard changes from the package defaults. `dashboard.render: "client"` makes the browser draw every screen, so the Worker holds no Vue server app. `assistant.playbooks` adds the notes of your own pages to the assistant. |
 | `nuxt.config.ts` | The Nuxt layers. `nitro.minify` keeps the Worker below the Cloudflare limits of 64 MiB of code and 1 s of startup, and the ASCII output of `nitro.rolldownConfig` keeps the heap of an isolate below its limit of 128 MB. |
-| `heximon.config.ts` | The compiler plugins, the one cron trigger of the schedule (every minute), and the name and the bindings of the dashboard Worker (`cloudflare`): the Hyperdrive id, the R2 bucket, the applet supervisor in the applets Worker, and the reader of the text of attached files there (`ATTACHMENT_TEXT`). |
+| `heximon.config.ts` | The compiler plugins, the one cron trigger of the schedule (every minute), and the name and the bindings of the dashboard Worker (`cloudflare`): the Hyperdrive id, the R2 bucket, the applet supervisor in the applets Worker, the reader of the text of attached files there (`ATTACHMENT_TEXT`), and the cached entrypoint of public files (`FilesDeliveryEntrypoint`, "File cache"). |
 | `heximon.upgrade.json` | The record of the durable surface: the events, the timers and the workflow steps that stored work names. It is generated: run `pnpm heximon:check --update` and commit the result. |
-| `app/` | The navigation of the dashboard. |
+| `app/` | The app config. The navigation is the default of the dashboard layer; `app/app.config.ts` says how to change it. |
 | `.github/workflows/release.yml` | A published release, or a manual run, migrates the database and deploys the two Workers. |
 | `.github/workflows/backup.yml` | Each night, or on a manual run, writes an encrypted archive of the database and the files and uploads it. |
 
@@ -37,7 +36,8 @@ dashboard-setup`) runs each step below and stops at each browser step.
 
 1. Copy `.env.example` to `.env`. Fill the empty secrets (see "Secrets"). The values under "Local run only" are for
    this machine: the `INFERATIVE_FILES_R2_*` values are optional (see "Cloudflare").
-2. Run `pnpm install`. Commit `pnpm-lock.yaml`: the workflow installs with `--frozen-lockfile`.
+2. Run `pnpm install`. It also runs `nuxt prepare`, so the editor has the types. Commit `pnpm-lock.yaml`: the workflow
+   installs with `--frozen-lockfile`.
 3. Run `pnpm db:generate` once. It writes the first migration into `server/persistence/pg/migrations/`. Commit it.
 4. Run `pnpm dev`. The dashboard is at `http://localhost:3000`.
 
@@ -88,20 +88,22 @@ A local run and the Worker use one database. Use the same root in `.env` and on 
 database.
 
 The mail sender (its address and name) and the switches of the background work (IndexNow and the daily price sync) are
-on Settings › Organization › Platform: a platform administrator saves them there, so set no variable for them. The
+on Platform › General and Platform › Integrations: a platform administrator saves them there, so set no variable for them. The
 Worker needs no assistant driver: a production build always calls models through the model connections. The OAuth issuer, the MCP address, the passkey
 settings and the links in mail come from the deployment's default domain, which the first run stores, so set none of them.
-For the linked Telegram chat, see "Telegram". For the GitHub App, see "GitHub". AI turns on for an
+For the linked Telegram chat, see "Telegram". For the GitHub App, see "GitHub". For the spam check of the forms
+that your websites send, set the captcha of each channel on its settings page (a Cloudflare Turnstile widget: its site
+key and its secret): a channel with no captcha keeps each submission and mails none. AI turns on for an
 organization when it has a model connection: one that it adds under Organization > Models, or one that the platform
 organization (the first organization) adds there and offers on Inferative's credits. The platform organization's
 connections also give the field writer, the translator and the second-opinion reviewer their model. To limit the
-vendors that may get the text, a platform administrator saves the list on Settings › Organization › Platform. With no
+vendors that may get the text, a platform administrator saves the list on Platform › Data processing. With no
 saved list, the vendor of any connection that an organization adds may get it. For the websites of your channels, set
 `INFERATIVE_CHANNELS_ADMINISTRATION_ORIGINS`. The Worker needs no `DATABASE_URL`: it uses Hyperdrive. The values under
 "Local run only" in `.env.example` never go to the Worker.
 
 The name that people see is `app.name` in `inferative.config.ts`, until a platform administrator saves another one on
-Settings › Organization › Platform. It is also the sender name of every mail (until a sender name is saved on the same
+Platform › General. It is also the sender name of every mail (until a sender name is saved on the same
 tab), the title of the MCP server and the issuer that an authenticator app shows. The organization rules (one
 organization only, open registration, team organizations, the role of a new member, invitations) and the default time
 zone are on the same tab.
@@ -116,31 +118,53 @@ Write the Worker values into `.env.worker` (`.gitignore` keeps every `.env.*` fi
 them once: `pnpm exec wrangler secret bulk .env.worker --name my-inferative-dashboard`. The workflow does not set
 Worker secrets.
 
-### Older variables
+### Location cache
 
-An install made before the root secret and the settings screens may still set these variables. A production boot logs
-one warning for each one that is still set: the line names the variable and where its value lives now, and never its
-value. A Worker keeps a secret until you delete it (`pnpm exec wrangler secret delete <name> --name
-my-inferative-dashboard`). Delete its line from `.env.worker` too, so that a later `wrangler secret bulk` does not set it
-again.
+Each Cloudflare location can keep the public reads of your sites and the SDK for up to 60 seconds, and a publish
+removes them from every location by tag. It works only on a custom domain in a zone of your Cloudflare account: a
+purge of the zone does not reach a `workers.dev` address, so that address never keeps an answer.
 
-| Variable | What the dashboard does with it | Retire it |
-| :-- | :-- | :-- |
-| `INFERATIVE_IDENTITY_SETUP_TOKEN` | It wins over the token of the root. | Delete it: the first-run step closes after its first run. |
-| `INFERATIVE_REALTIME_TICKET_SECRET` | It wins over the secret of the root. | Delete it. A ticket lives two minutes, so an open stream signs in again once. |
-| `INFERATIVE_BASE_SIGNED_ACCESS_SIGNING_KEYS` | It wins over the keys of the root. | Delete it from `.env` and the Worker at once. The links (preview, download, visualization) and the MCP session ids of outside agents that its keys signed stop working; an outside agent then connects again. |
-| `INFERATIVE_NOTIFICATIONS_CHAT_TELEGRAM_WEBHOOK_SECRET` | It wins over the secret of the root. | Delete it, then save the bot again on Settings › Organization › Credentials: the save registers the webhook with the secret of the root. |
-| `INFERATIVE_IDENTITY_SIGNING_KEY` | It wins over the kept key. | Delete it. The kept key then signs, and the key that it replaces still verifies for the access-token lifetime (one hour by default), so nobody is signed out. |
-| `INFERATIVE_IDENTITY_MFA_ENCRYPTION_KEY` | With the root set, it only decrypts. A two-factor secret is sealed again under the root's key at its next sign-in. | Run `pnpm mfa:reseal`. Delete the key only when the task reports `remaining: 0` and the outbox holds no account mail (an invitation, a password reset) queued before that reseal: the link of such a mail is sealed under a key of the MFA key, and a link that no key opens drops its mail. |
-| `INFERATIVE_ASSISTANT_HISTORY_ENCRYPTION_KEY` | With the root set, it only decrypts the model history that it sealed. | Keep it for as long as the install keeps that history, and until every agent session open before the change has ended: a runner session token derives from this key. The assistant's task `ResealModelHistory` seals the history again, but it runs only on a host that `heximon task run` compiles for Node, and this starter compiles for Cloudflare Workers only. |
-| `INFERATIVE_SECRETS_KEYS` | With the root set, each listed key only decrypts what it sealed. The key marked `derive` stays the root of the webhook secrets of agent bots. | Run `pnpm secrets:rewrap`: it seals every value again under the root's key and keeps the `derive` root. Delete the list when the task reports no value under a listed key. |
-| `INFERATIVE_MODELS_DEPLOYMENT_CONNECTIONS` | It applies only while the platform organization stores no model connection. | Add the connections on Settings › AI › Models of the platform organization, then delete it. |
-| `INFERATIVE_NOTIFICATIONS_CHAT_TELEGRAM_BOT_TOKEN`, `INFERATIVE_NOTIFICATIONS_CHAT_TELEGRAM_BOT_USERNAME` | They apply only while no bot is saved. | Save the bot on Settings › Organization › Credentials, then delete them. |
-| `INFERATIVE_IDENTITY_ORGANIZATION_SINGLE_ORGANIZATION` and the other organization rules, `INFERATIVE_IDENTITY_ORGANIZATION_DEFAULT_TIME_ZONE`, `INFERATIVE_LOCALIZATION_TIME_ZONE`, `INFERATIVE_APP_NAME` | They apply only until a platform administrator saves the setting. | Save the setting on Settings › Organization › Platform, then delete them. |
-| `INFERATIVE_NOTIFICATIONS_SENDER_EMAIL`, `INFERATIVE_NOTIFICATIONS_SENDER_NAME` | They apply only until a platform administrator saves the mail sender. | Save the address and the name under "Mail sender" on Settings › Organization › Platform, then delete them. |
-| `INFERATIVE_SEO_INDEX_NOW_ENABLED`, `INFERATIVE_AGENTS_PRICE_SYNC_ENABLED` | They apply only until a platform administrator saves the switch. | Save each switch under "Background work" on Settings › Organization › Platform, then delete them. |
-| `INFERATIVE_APP_ORIGIN`, `INFERATIVE_MODELS_PUBLIC_ONLY_EGRESS`, `INFERATIVE_BASE_PROCESSING_*` | Nothing reads them. | Delete them. |
-| `INFERATIVE_ASSISTANT_BACKEND_DRIVER` on the Worker | Nothing reads it: a production build calls models through the model connections. | Delete it from the Worker. Keep it in `.env` when a local run must call a model. |
+1. Create an API token in the Cloudflare dashboard with one permission, Zone › Cache Purge, on that zone only.
+2. On Platform › Domains and caching, under "Location cache", turn it on and save the zone ID (on the zone's
+   overview page) and the zone name (`example.com`). Save the token in its own field there: the secret store keeps
+   it, and the screen never shows it again. It is no environment variable.
+
+With the switch off, or with no zone or no token, every public read goes to the Worker. Each publish sends one purge
+request and a second one 5 seconds later; the publishes of one moment share them. The Free plan allows 5 purge
+requests per minute (a burst of 25) for all the zones of the account, so a long run of publishes waits for its purges.
+A zone on the Pro plan or higher removes that wait.
+
+### File cache
+
+The Workers Cache keeps the bytes of each public file for one day (`files.deliveryCdnMaxAgeSeconds` in
+`inferative.config.ts`), so a second read of a public file does not run the app or read the R2 bucket. It works on every
+address of the Worker, a `workers.dev` address too, and needs no token and no setting.
+
+- **What it keeps.** The bytes of a public file at its current address, `/api/files/delivery/<file>` (or with
+  `?download=1`), and its video poster. The cache key holds no host name, so the cache is on for one entrypoint of the
+  Worker only, `FilesDeliveryEntrypoint` (`server/files-delivery.entrypoint.ts`). Every request goes to the default
+  entrypoint first, which caches nothing. The file route reads the file's row on every request and decides the read.
+  Only then does it ask the cached entrypoint, for a public file alone, with no cookie and no `Authorization` header. A
+  miss runs the app once more and keeps the answer only when it says `public`: a private, protected or signed file, a
+  redirect and an error are never kept. A range read gets its range from the kept file. An answer that came through the
+  cached entrypoint carries `X-Files-Delivery-Cache: entrypoint`.
+- **Why a change never serves old bytes.** The route asks the cache after its decision, so a file that is no longer
+  public reaches no kept copy. The key also holds a stamp of the row (its delivery version, its access version and its
+  stored bytes), so a file that is public again, renamed or replaced reaches only an answer kept under its new state. A
+  read that was in flight during the change stores its answer under the old stamp, which no later read names.
+- **What a hit costs.** A hit sends the statements of the route's decision (the file's row and the checks before it),
+  as a read with no cache does, and reads nothing from the bucket. A miss sends those statements twice, once for the
+  decision and once for the fill, and reads the bucket once.
+- **Purges.** A change of a public file (its access, a rename, a quarantine, a delete, a new poster) purges the file's
+  cache tag through the outbox, a few seconds after the change. The purge only frees space: no read depends on it. The
+  Workers Cache purges at the Free plan's rate on every plan (5 a minute, a burst of 25); a refused purge is a warning,
+  and the copy expires after its day.
+- **Versions.** `cache.cross_version_cache` in `nuxt.config.ts` keeps the cached files across deploys: a deploy does not
+  read every public file again. A release that changes how the app answers a public file keeps the old answer in the
+  cache for at most one day.
+
+A local `wrangler dev` has no Workers Cache: every read goes through the cached entrypoint to the app, and sends no
+`Cf-Cache-Status`. On a deployed Worker the second read of a public file answers with `Cf-Cache-Status: HIT`.
 
 ## Cloudflare
 
@@ -168,7 +192,9 @@ Durable Objects, the Worker Loader of the applets and the Cloudflare Workflows
 `my-inferative-dashboard-notifications-chat-reply`. The Worker sends each fired timer (a decision, a runner lease, an
 agent wake, a chat delivery) through the queue `my-inferative-dashboard-saga-timer-queue` and reads it back.
 
-Run the dashboard Worker in the region of the database. Without a placement, the Worker runs in the data centre of
+Run the dashboard Worker in the region of the database. Phase 5 of `SETUP.md` writes the placement and the location
+hint below from the database region (the setup skill maps a region in `references/setup-cloudflare.md`). Without a
+placement, the Worker runs in the data centre of
 each visitor, and every statement crosses to the database's region: on a database in another country that is about
 50 ms for each round of reads. Put the region of the database into the `nitro.cloudflare.wrangler` block of `nuxt.config.ts`:
 
@@ -273,6 +299,19 @@ app on this machine in development mode, so it needs no Worker binding.
   UPDATE "agents" SET "models" = jsonb_build_array(jsonb_build_object('connectionId', "model_connection_id", 'model', "model", 'efforts', '[]'::jsonb, 'defaultEffort', NULL, 'isDefault', true)) WHERE "model" <> '';
   ```
 
+- **An install made before the connection pools.** A release replaces the table `model_connection_defaults` with an
+  order of the model connections: the columns `enabled`, `priority`, `weight`, `health_state`, `failure_streak` and
+  `cooling_until` of `model_connections`, and the tables `model_connection_pins` and `model_connection_pool_settings`.
+  `pnpm db:generate` asks whether each new table is a rename: answer that it is a new table. The migration then drops
+  the defaults table before it adds the columns. Before you commit it, move the statement that drops
+  `model_connection_defaults` to the end of the migration, and put this statement before it, followed by
+  `--> statement-breakpoint`. In an organization that has defaults, it puts each connection that no default names after
+  the named ones, so the calls go on through the connections that the defaults named.
+
+  ```sql
+  UPDATE "model_connections" SET "priority" = 2 WHERE EXISTS (SELECT 1 FROM "model_connection_defaults" AS "d" WHERE "d"."organization_id" = "model_connections"."organization_id") AND NOT EXISTS (SELECT 1 FROM "model_connection_defaults" AS "d" WHERE "d"."organization_id" = "model_connections"."organization_id" AND "d"."connection_id" = "model_connections"."id");
+  ```
+
 - **An install made before the location hint of the rooms.** The release moves the `Storage` room and the response
   cache room to new objects (`inferative-storage-2`, `response-cache-2`), because an object never moves after it is
   created. The keys of the old `Storage` room are lost once: the claims of a command in flight, the state of a sign-in
@@ -292,6 +331,54 @@ app on this machine in development mode, so it needs no Worker binding.
   INSERT INTO "domains" ("id", "host", "organization_id", "kind", "is_primary", "status", "created_at", "updated_at", "version") SELECT 'default', '<host>', NULL, 'default', false, 'active', now(), now(), 1 WHERE EXISTS (SELECT 1 FROM "installations") ON CONFLICT DO NOTHING;
   ```
 
+- **An install made before each organization had its own languages.** The release adds the columns `locales` and
+  `default_locale` to `organizations`. Until a row holds them, the organization reads the configured
+  `localization.locales` (English alone on this starter). `pnpm db:generate` writes the migration that adds them. Put
+  the statement below at the end of its `migration.sql`, after a `--> statement-breakpoint`. It gives each
+  organization the configured languages, then each further language that one of its channels serves, with the
+  configured default as its language, and it changes no organization that holds languages. A channel serves only
+  languages of its organization, so without it a channel that serves more is refused at its next save. The statement
+  is for this starter's configuration (English alone); an install configured with other languages puts them in place
+  of `["en"]`, and its default in place of `'en'`.
+
+  ```sql
+  WITH "l" AS (SELECT "o"."id" AS "organization_id", "c"."locale", "c"."position" AS "rank" FROM "organizations" AS "o" CROSS JOIN jsonb_array_elements_text('["en"]'::jsonb) WITH ORDINALITY AS "c" ("locale", "position") WHERE "o"."locales" IS NULL UNION ALL SELECT "h"."organization_id", (CASE WHEN "c"."locale" ~* '^[a-z]{2,3}$' THEN lower("c"."locale") WHEN "c"."locale" ~* '^[a-z]{2,3}-([a-z]{2}|[0-9]{3})$' THEN lower(split_part("c"."locale", '-', 1)) || '-' || upper(split_part("c"."locale", '-', 2)) WHEN "c"."locale" ~* '^[a-z]{2,3}-[a-z]{4}$' THEN lower(split_part("c"."locale", '-', 1)) || '-' || initcap(split_part("c"."locale", '-', 2)) WHEN "c"."locale" ~* '^[a-z]{2,3}-[a-z]{4}-([a-z]{2}|[0-9]{3})$' THEN lower(split_part("c"."locale", '-', 1)) || '-' || initcap(split_part("c"."locale", '-', 2)) || '-' || upper(split_part("c"."locale", '-', 3)) ELSE "c"."locale" END), 1000000 + row_number() OVER (PARTITION BY "h"."organization_id" ORDER BY "h"."created_at", "h"."id", "c"."position") FROM "channels" AS "h" INNER JOIN "organizations" AS "o" ON "o"."id" = "h"."organization_id" AND "o"."locales" IS NULL CROSS JOIN jsonb_array_elements_text("h"."locales") WITH ORDINALITY AS "c" ("locale", "position") WHERE "h"."status" <> 'archived'), "f" AS (SELECT "organization_id", "locale", min("rank") AS "rank" FROM "l" GROUP BY "organization_id", "locale"), "x" AS (SELECT "organization_id", jsonb_agg("locale" ORDER BY "rank") AS "locales" FROM "f" GROUP BY "organization_id") UPDATE "organizations" AS "o" SET "locales" = "x"."locales", "default_locale" = 'en', "version" = "o"."version" + 1 FROM "x" WHERE "o"."id" = "x"."organization_id" AND "o"."locales" IS NULL;
+  ```
+
+- **An install made before the agent profiles.** The release adds the tables `agent_profiles` and
+  `agent_profile_rules`, and the columns `profile_id` and `overrides` to `agents`. `pnpm db:generate` writes the
+  migration that adds them. Put the two statements below at the end of its `migration.sql`, after a
+  `--> statement-breakpoint`. The deploy tool runs the same step once on each install (`agents_profiles`). They make one profile for each distinct setup of the team agents of an organization (the
+  runtime, the CLI, the models, the model source and the permission mode), and each such agent then selects the
+  profile of its setup. An outside agent and a personal agent keep their own fields. A second run changes nothing.
+
+  ```sql
+  INSERT INTO "agent_profiles" ("id", "organization_id", "built_in_key", "name", "runtime", "cli_backend", "models", "model_source", "permission_mode", "runner_kind", "tools", "tags", "version", "created_at", "updated_at") SELECT 'adopted-' || md5(concat_ws('|', "organization_id", "runtime", coalesce("cli_backend", ''), "models"::text, "model_source", coalesce("permission_mode", ''))), "organization_id", NULL, CASE "runtime" WHEN 'api' THEN 'API' WHEN 'hosted' THEN 'Hosted' ELSE CASE "cli_backend" WHEN 'claude-code' THEN 'Claude Code' WHEN 'codex' THEN 'Codex' ELSE COALESCE("cli_backend", 'Command line') END || ' · ' || CASE "permission_mode" WHEN 'read-only' THEN 'Read only' WHEN 'task-folder' THEN 'Task folder' WHEN 'full-access' THEN 'Full access' ELSE 'Default' END END, "runtime", "cli_backend", "models", "model_source", "permission_mode", CASE WHEN "runtime" = 'cli' THEN 'shared' ELSE NULL END, '[]'::jsonb, '[]'::jsonb, 1, MIN("created_at"), MIN("created_at") FROM "agents" WHERE "kind" = 'team' AND "runtime" <> 'outside' AND "profile_id" IS NULL GROUP BY "organization_id", "runtime", "cli_backend", "models", "model_source", "permission_mode" ON CONFLICT DO NOTHING;--> statement-breakpoint
+  UPDATE "agents" SET "profile_id" = 'adopted-' || md5(concat_ws('|', "organization_id", "runtime", coalesce("cli_backend", ''), "models"::text, "model_source", coalesce("permission_mode", ''))) WHERE "kind" = 'team' AND "runtime" <> 'outside' AND "profile_id" IS NULL;
+  ```
+
+- **An install made before the personal agent's profile.** No schema changes. Run the statement below once, after
+  the step of the agent profiles; the deploy tool runs it once on each install (`personal_agent_profiles`). It moves
+  each personal agent that keeps its own fields onto the built-in "Assistant (API)" profile of its organization. Its
+  model source stays as a field changed for it, and so does its model list unless its default model is the profile's. An organization with no built-in profile yet keeps
+  its agents as they are: the write of its built-in profiles moves them. A second run changes nothing.
+
+  ```sql
+  UPDATE "agents" AS "a" SET "profile_id" = "p"."id", "overrides" = CASE WHEN (SELECT "d"->>'model' FROM jsonb_array_elements("a"."models") AS "d" WHERE "d"->>'isDefault' = 'true' LIMIT 1) = (SELECT "e"->>'model' FROM jsonb_array_elements("p"."models") AS "e" WHERE "e"->>'isDefault' = 'true' LIMIT 1) AND "a"."model_source" = "p"."model_source" THEN NULL WHEN (SELECT "d"->>'model' FROM jsonb_array_elements("a"."models") AS "d" WHERE "d"->>'isDefault' = 'true' LIMIT 1) = (SELECT "e"->>'model' FROM jsonb_array_elements("p"."models") AS "e" WHERE "e"->>'isDefault' = 'true' LIMIT 1) THEN jsonb_build_object('modelSource', "a"."model_source") WHEN "a"."model_source" = "p"."model_source" THEN jsonb_build_object('models', "a"."models") ELSE jsonb_build_object('models', "a"."models", 'modelSource', "a"."model_source") END, "version" = "a"."version" + 1 FROM "agent_profiles" AS "p" WHERE "a"."kind" = 'personal' AND "a"."profile_id" IS NULL AND "a"."runtime" = 'api' AND "a"."state" <> 'retired' AND "p"."organization_id" = "a"."organization_id" AND "p"."built_in_key" = 'assistant-api';
+  ```
+
+- **An install made before the models for tasks.** The release adds the table `ai_task_models`. `pnpm db:generate`
+  writes the migration that adds it. Put the statement below at the end of its `migration.sql`, after a
+  `--> statement-breakpoint`; the deploy tool runs the same step once on each install (`ai_task_models_fill`). It
+  marks each organization while the table holds no row. The first read of a marked organization's tasks gives each
+  task, once, the model that its calls took before, when a model connection of the organization's own lists it; else
+  the task starts off. An organization made later gets no mark, so its tasks start off until a person picks a model on
+  Settings › AI › Models. A second run marks no organization: the fill leaves a row.
+
+  ```sql
+  INSERT INTO "ai_task_models" ("organization_id", "task", "chosen_at") SELECT "id", 'fill', now() FROM "organizations" WHERE NOT EXISTS (SELECT 1 FROM "ai_task_models") ON CONFLICT DO NOTHING;
+  ```
+
 This starter has no preview Worker. The Durable Objects of the dashboard hold state that refers to the database: the
 decision timers, the assistant conversations, the runner connections and the applet versions. A preview Worker on
 the same database would split that state.
@@ -307,13 +394,6 @@ the same database would split that state.
 3. Enrol an authenticator on the Security page of your account.
 
 The first run creates nothing else: no channel, no department, no project. Create them in the dashboard.
-
-Optional, for a test install: `pnpm demo:seed` loads demo data into the organization of the first run, so each screen
-has data to show: a department that the owner heads (only in an organization with no department), the project `DEMO`
-with three tasks, an agent, and a website channel with a content type and three entries. It acts as the owner, so it
-writes nothing before the first run. It writes only the parts that the organization lacks, and it never changes or
-deletes a row that exists, so a run that stopped half way finishes on the next run, and a second run writes nothing.
-It runs the app on this machine against the database of `.env`.
 
 The first organization that the first-run step creates is the platform organization of the deployment. It starts on
 the Business plan (`INFERATIVE_BASE_TIERS_PLATFORM_ORGANIZATION_PLAN_KEY` names another plan), and every other
@@ -373,16 +453,16 @@ To send real mail, add a provider. For example, Resend:
    ```
 
 3. Add `MailModule` to `imports` in `server/app.module.ts`.
-4. Sign in as an owner or an administrator of the platform organization (the first organization). Open Settings ›
-   Organization › Credentials and save the Resend API key under "Mail provider key". The key goes into the secret
+4. Sign in as an owner or an administrator of the platform organization (the first organization). Open Platform ›
+   Credentials and save the Resend API key under "Mail provider key". The key goes into the secret
    store, and the server reads it each time it sends a mail. No Worker secret is needed for it.
-5. On Settings › Organization › Platform, under "Mail sender", save an address on a domain that Resend verified.
+5. On Platform › General, under "Mail sender", save an address on a domain that Resend verified.
 
 ## Telegram
 
 `ChatModule` links the Telegram chat of a member. The member gets the inbox items that need them in the chat, with
 answer buttons, and can write to their own assistant there. A member links the chat in Your account › Profile. The
-chat is off until a bot is saved on Settings › Organization › Credentials, "Member chat bot". Only an owner or an
+chat is off until a bot is saved on Platform › Credentials, "Member chat bot". Only an owner or an
 administrator of the platform organization (the first organization) sees the tab. The token goes into the secret store
 and is not shown again. The webhook secret derives from `INFERATIVE_ROOT_SECRET`.
 
@@ -409,28 +489,25 @@ failed CI check: when CI fails on a commit that an agent pushed, GitHub sends a 
 the agent works on its task again with the output of the failed checks. The App also gives the write token of a
 runner's checked push and opens draft pull requests.
 
-The App is a setting of the deployment: one App for the dashboard. Create it on GitHub (Settings › Developer settings ›
-GitHub Apps › New GitHub App, on your account or on your GitHub organization):
+The App is a setting of the deployment: one App for the dashboard, which each organization installs on its own GitHub
+account. A platform administrator sets it on Platform › Integrations, under "GitHub App". No variable holds
+it: the private key, the webhook secret and the client secret stay in the secret store, and nobody can read them back.
 
-| Field | Value |
-| :-- | :-- |
-| Webhook URL | `https://<your dashboard>/api/connectors/github/webhook` |
-| Webhook secret | `node -p 'require("node:crypto").randomBytes(32).toString("base64url")'` |
-| Repository permissions | Actions: Read-only. Checks: Read-only. Contents: Read and write. Issues: Read and write. Metadata: Read-only. Pull requests: Read and write. Workflows: Read and write. |
-| Subscribe to events | Check suite, Workflow run, Pull request, Pull request review |
+- **Create the GitHub App.** Type the GitHub organization that owns the App, or leave the field empty for your own
+  account, and click "Create the GitHub App". GitHub creates the App from the dashboard's manifest: the webhook URL
+  (`https://<your dashboard>/api/connectors/github/webhook`), the callback address of the install, the user
+  authorization during the install, the events (check suite, workflow run, pull request, pull request review) and the
+  permissions (actions, checks and metadata: read; contents, issues, pull requests and workflows: read and write; the
+  organization's members: read). GitHub then sends you back, and the dashboard saves the App.
+- **Use an existing App.** Type its App ID, client ID, client secret, webhook secret and private key (the text of the
+  `.pem` file). GitHub checks the App ID and the key before the dashboard saves the App. The tab shows the webhook URL
+  and the callback address to set on the App. To change one secret later, type only that secret: an empty field keeps
+  the saved value.
 
-Then generate a private key on the page of the App (Private keys), and set three secrets of the dashboard Worker. Put
-the same values in `.env` for a local run:
-
-| Variable | Value |
-| :-- | :-- |
-| `INFERATIVE_CONNECTORS_GITHUB_APP_ID` | The App ID on the page of the App. |
-| `INFERATIVE_CONNECTORS_GITHUB_APP_PRIVATE_KEY` | The text of the `.pem` file that GitHub gives. In `.env`, put it in double quotes on one line, with `\n` for each line break. |
-| `INFERATIVE_CONNECTORS_GITHUB_WEBHOOK_SECRET` | The webhook secret of the App. |
-
-Without the App ID and the key, no installation gives a token. Without the webhook secret, the webhook route refuses
-every delivery. A GitHub Enterprise server sets `INFERATIVE_CONNECTORS_GITHUB_API_BASE_URL` (the default is
-`https://api.github.com`). A local run on `localhost` gets no delivery: GitHub reaches only a public `https://` address.
+A new App replaces the saved one; each organization then installs the new App again. Without a saved App, no
+installation gives a token and the webhook route refuses every delivery. A GitHub Enterprise server sets
+`INFERATIVE_CONNECTORS_GITHUB_API_BASE_URL` (the default is `https://api.github.com`). A local run on `localhost` gets
+no delivery: GitHub reaches only a public `https://` address.
 
 Install the App on the GitHub account that owns each repository. The webhook delivery of an installation reaches an
 organization of the dashboard only when the organization holds the connection of that installation. The repository
@@ -488,7 +565,8 @@ dashboard Worker; `pnpm exec heximon check --cwd workers/applets` compiles the a
 
 Add the module of the package and its Postgres persistence module to `server/app.module.ts`, and its tables to
 `schema.ts`. Add its layer to `extends` in
-`nuxt.config.ts`, and its entry to the navigation in `app/app.config.ts`. Run `pnpm heximon:check`, then
+`nuxt.config.ts`. The default navigation shows its entry while the module is composed; a page of your own goes into
+`dashboard.navigation` in `app/app.config.ts`. Run `pnpm heximon:check`, then
 `pnpm db:generate`. Delete the same lines to remove one. A module that adds a Durable Object, a queue or a workflow
 adds it to the Worker by itself: read `.output/server/wrangler.json` after a build.
 
@@ -516,9 +594,8 @@ the backup, so the archive holds every object that its rows name. A restore appl
 local state of `wrangler dev` instead of the bucket. The archive holds personal data and sealed secrets: keep it as
 you keep the database. The runbook is [Backup and restore](https://inferative.dev/docs/deploy/backup-and-restore).
 
-A restore needs the root that sealed the data of the archive, or the older keys that sealed it: the archive holds no
-key. Put `INFERATIVE_ROOT_SECRET` (and `INFERATIVE_ROOT_SECRET_PREVIOUS` or `INFERATIVE_SECRETS_KEYS`, when the install
-still uses them) in the env file of `restore` and `verify`. The check then opens one value of each key of the secret
+A restore needs the root that sealed the data of the archive: the archive holds no key. Put `INFERATIVE_ROOT_SECRET`
+(and `INFERATIVE_ROOT_SECRET_PREVIOUS`, during a rotation) in the env file of `restore` and `verify`. The check then opens one value of each key of the secret
 store, and fails and names the variable that lacks a key.
 
 ### The nightly backup
@@ -557,7 +634,6 @@ The workflow reads these repository secrets. A run with a missing secret fails a
 | `pnpm heximon:check` | Compiles the modules and reports the wiring errors. |
 | `pnpm db:generate` | Writes a migration from `schema.ts`. |
 | `pnpm db:migrate` | Applies the migrations to `DATABASE_URL`. |
-| `pnpm demo:seed` | Loads the demo data of a test install into the organization of the first run (see "The first run"). |
 | `pnpm tiers:seed` | Loads the plans of the release into the database of `.env`. Run it once after an upgrade (see "Deploy"). |
 | `pnpm connectors:catalog` | Writes the catalog of outside accounts of the release into the database of `.env`. Run it once after a Release run (see "GitHub"). |
 | `pnpm mfa:reseal` | Seals every two-factor secret in the database of `.env` again under the MFA key of the root, and prints how many secrets remain (see "Secrets"). |
