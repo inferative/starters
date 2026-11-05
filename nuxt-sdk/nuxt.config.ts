@@ -11,6 +11,9 @@ export default defineNuxtConfig({
   // `nuxt dev` answers on this machine only.
   devServer: { host: "localhost" },
   modules: ["@inferative/sdk/nuxt"],
+  // The module serves the sitemap, `robots.txt`, `llms.txt`, `llms-full.txt`, the feeds and the IndexNow key file from
+  // the channel. They are off until this is on.
+  inferativeSite: { site: { machineDocuments: true } },
   runtimeConfig: {
     // Public values only: the browser reads them. `NUXT_PUBLIC_INFERATIVE_API_BASE_URL` and
     // `NUXT_PUBLIC_INFERATIVE_CHANNEL_KEY` set them. The key that publishes the manifest is never here.

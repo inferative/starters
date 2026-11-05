@@ -64,6 +64,14 @@ Replace every placeholder:
 - In `heximon.config.ts`, the name of the R2 bucket for files (`FILES_BUCKET`). Create it once:
   `wrangler r2 bucket create <site>-files`. Both Workers and every local run use this one bucket.
 
+Run both Workers in the region of the database. Without a placement, a Worker runs in the data centre of each visitor,
+and every statement crosses to the database's region. Add the placement to the `nitro.cloudflare.wrangler` block of
+`nuxt.config.ts`, for example `placement: { mode: "targeted", region: "aws:eu-central-1" }`; the preview Worker takes
+it too. Set it there, not in the Cloudflare dashboard: each `wrangler deploy` writes the config of the Worker again.
+Put the matching Cloudflare location hint (`weur` for western Europe, `enam` for eastern North America, and so on) into
+`base.durable.locationHint` in the `$production` block of `inferative.config.ts`: Cloudflare then creates the `Storage`
+room there. Phase 5 of `SETUP.md` writes both from the database region.
+
 For local development, create an R2 access key in the Cloudflare dashboard: **R2 object storage**, then **Manage** beside
 **API Tokens**, then **Create Account API token** (an account token stays valid when a developer leaves; a user token
 does not). Enter a name, choose **Object Read & Write**, and apply it to specific buckets only: the bucket of the site.
@@ -113,25 +121,24 @@ nightly backup"). Do not rotate again before then: there is one slot for the pre
 The signing key may differ between `.env` and each Worker. This site keeps no secret store, so it does not make the
 key itself. The passkey settings and the links in mail come from the address of the request, so set none of them.
 The site runs one organization: `identity.organization.singleOrganization` in `inferative.config.ts`. A platform
-administrator can change the rule on Settings > Organization > Platform. The mail sender and the IndexNow switch are on
-the same tab, so set no variable for them.
+administrator can change the rule on Platform > General. The mail sender is on the same tab, and the IndexNow switch is on Platform >
+Integrations, so set no variable for them.
 
 ### Older variables
 
-A site made before the root secret and the settings screens may still set these. A production boot logs one warning
-for each one that is set, and says where its value lives now.
+A site made before the root secret and the settings screens may still set these.
 
 | Variable | What the site does with it | Retire it |
 | :-- | :-- | :-- |
 | `INFERATIVE_IDENTITY_SETUP_TOKEN` | It wins over the token of the root. | Delete it: the first-run step then takes the token of the root. |
 | `INFERATIVE_BASE_SIGNED_ACCESS_SIGNING_KEYS` | It wins over the keys of the root. | Delete it from `.env` and both Workers at once. The preview links that its keys signed stop working. |
-| `INFERATIVE_IDENTITY_MFA_ENCRYPTION_KEY` | With the root set, it only decrypts. A secret is sealed again under the root's key at its next sign-in. | Run `pnpm mfa:reseal`. Delete the key only when the task reports `remaining: 0` and the outbox holds no account mail (an invitation, a password reset) queued before that reseal: the link of such a mail is sealed under a key of the MFA key, and a link that no key opens drops its mail. |
+| `INFERATIVE_IDENTITY_MFA_ENCRYPTION_KEY` | With the root set, the site does not read it. | Delete it. |
 | `INFERATIVE_IDENTITY_ORGANIZATION_SINGLE_ORGANIZATION` | It applies until a platform administrator saves the rule. | Delete it: `inferative.config.ts` sets the rule. |
-| `INFERATIVE_NOTIFICATIONS_SENDER_EMAIL`, `INFERATIVE_NOTIFICATIONS_SENDER_NAME` | They apply only until a platform administrator saves the mail sender. | Save the address and the name under "Mail sender" on Settings › Organization › Platform, then delete them from `.env` and both Workers. |
-| `INFERATIVE_SEO_INDEX_NOW_ENABLED` | It applies only until a platform administrator saves the switch. | Save the IndexNow switch under "Background work" on Settings › Organization › Platform, then delete it. |
+| `INFERATIVE_NOTIFICATIONS_SENDER_EMAIL`, `INFERATIVE_NOTIFICATIONS_SENDER_NAME` | They apply only until a platform administrator saves the mail sender. | Save the address and the name under "Mail sender" on Platform › General, then delete them from `.env` and both Workers. |
+| `INFERATIVE_SEO_INDEX_NOW_ENABLED` | It applies only until a platform administrator saves the switch. | Save the IndexNow switch under "Background work" on Platform › Integrations, then delete it. |
 
 An older site may also set `INFERATIVE_IDENTITY_WEBAUTHN_RP_ID` and `INFERATIVE_IDENTITY_WEBAUTHN_ALLOWED_ORIGINS`.
-They still win over the address of the request, and no boot warns about them. A value that names a real domain (an RP
+They still win over the address of the request. A value that names a real domain (an RP
 ID of the parent domain, such as `example.com` for `admin.example.com`, or the origin of a preview or a native client)
 is a valid override: keep it, because the passkeys made under that RP ID stop working when it goes. Delete only the
 `http://localhost` placeholder of an older `.env.example` (a native origin such as `capacitor://localhost` stays), and never copy it to a Worker: it breaks passkeys there.
@@ -162,6 +169,27 @@ After an upgrade to a new release, run `pnpm db:generate` and commit the migrati
   ```
 
   On MySQL, write each name in backticks.
+
+- **An install made before a draft that equals the live version stopped counting as a change.** No schema changes.
+  Run the three statements below once, in this order: on the database by hand, or in a custom migration
+  (`pnpm exec drizzle-kit generate --custom --name content_drafts_equal_live`, with the statements in its
+  `migration.sql`). A live entry whose draft holds the live document no longer has unpublished changes, its page in
+  the pages tree loses the mark of unpublished changes, and a publication whose live version the entry serves takes
+  that version as its candidate again. A second run changes nothing.
+
+  ```sql
+  UPDATE "content_entries" SET "published_source_revision" = "draft_revision", "version" = "version" + 1 WHERE "status" = 'published' AND "published_document" IS NOT NULL AND "draft_revision" > "published_source_revision" AND "published_document" = "document";--> statement-breakpoint
+  UPDATE "page_placements" AS "p" SET "unpublished_changes" = false, "version" = "p"."version" + 1 FROM "content_entries" AS "e" WHERE "p"."unpublished_changes" = true AND "e"."id" = "p"."entry_id" AND "e"."organization_id" = "p"."organization_id" AND "e"."type_key" = "p"."entry_type" AND "e"."status" = 'published' AND "e"."draft_revision" <= "e"."published_source_revision";--> statement-breakpoint
+  UPDATE "publications" AS "p" SET "candidate_revision_id" = "p"."live_revision_id", "title" = "r"."title", "version" = "p"."version" + 1 FROM "content_entries" AS "e", "publication_revisions" AS "r" WHERE "p"."live_revision_id" IS NOT NULL AND "p"."candidate_revision_id" IS DISTINCT FROM "p"."live_revision_id" AND "p"."status" <> 'archived' AND "e"."id" = "p"."entity_id" AND "e"."organization_id" = "p"."organization_id" AND "e"."type_key" = "p"."entity_type" AND "e"."status" = 'published' AND "e"."published_revision_id" = "p"."live_revision_id" AND "e"."draft_revision" <= "e"."published_source_revision" AND "r"."id" = "p"."live_revision_id";
+  ```
+
+  On MySQL:
+
+  ```sql
+  UPDATE `content_entries` SET `published_source_revision` = `draft_revision`, `version` = `version` + 1 WHERE `status` = 'published' AND `published_document` IS NOT NULL AND `draft_revision` > `published_source_revision` AND `published_document` = `document`;--> statement-breakpoint
+  UPDATE `page_placements` AS `p` INNER JOIN `content_entries` AS `e` ON `e`.`id` = `p`.`entry_id` AND `e`.`organization_id` = `p`.`organization_id` AND `e`.`type_key` = `p`.`entry_type` SET `p`.`unpublished_changes` = false, `p`.`version` = `p`.`version` + 1 WHERE `p`.`unpublished_changes` = true AND `e`.`status` = 'published' AND `e`.`draft_revision` <= `e`.`published_source_revision`;--> statement-breakpoint
+  UPDATE `publications` AS `p` INNER JOIN `content_entries` AS `e` ON `e`.`id` = `p`.`entity_id` AND `e`.`organization_id` = `p`.`organization_id` AND `e`.`type_key` = `p`.`entity_type` INNER JOIN `publication_revisions` AS `r` ON `r`.`id` = `p`.`live_revision_id` SET `p`.`candidate_revision_id` = `p`.`live_revision_id`, `p`.`title` = `r`.`title`, `p`.`version` = `p`.`version` + 1 WHERE `p`.`live_revision_id` IS NOT NULL AND NOT (`p`.`candidate_revision_id` <=> `p`.`live_revision_id`) AND `p`.`status` <> 'archived' AND `e`.`status` = 'published' AND `e`.`published_revision_id` = `p`.`live_revision_id` AND `e`.`draft_revision` <= `e`.`published_source_revision`;
+  ```
 
 Deploy the live Worker before the first preview deploy, because the preview Worker binds its `Storage` room. Run
 `pnpm build` and `pnpm deploy:live` once, or start the Release workflow by hand. Until the live Worker exists, the
@@ -204,7 +232,7 @@ To send real mail, add a provider. For example, Resend:
 
 3. Add `MailModule` to `imports` in `server/app.module.ts`.
 4. Set `INFERATIVE_MAIL_RESEND_API_KEY` in `.env` and in the secrets of each Worker (`wrangler secret bulk`).
-5. On Settings › Organization › Platform, under "Mail sender", save an address on a domain that Resend verified.
+5. On Platform › General, under "Mail sender", save an address on a domain that Resend verified.
 
 ## Use MySQL
 
