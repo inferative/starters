@@ -2,7 +2,7 @@ import { Module } from "@heximon/runtime";
 import { MysqlActivityPersistence } from "@inferative/activity/persistence/mysql2";
 import { LiveEntityAnnouncer } from "@inferative/base/entity";
 import { RevisionPurgeDeliveries } from "@inferative/base/revisions";
-import { MysqlBasePersistence } from "@inferative/base/persistence/mysql2";
+import { MysqlBasePersistence, MysqlStoragePersistence } from "@inferative/base/persistence/mysql2";
 import { MysqlMigrations } from "@inferative/base/persistence/mysql2/migrations";
 import { MysqlChannelsPersistence } from "@inferative/channels/persistence/mysql2";
 import { MysqlContentPersistence } from "@inferative/content/persistence/mysql2";
@@ -20,6 +20,9 @@ import { MysqlVisualEditingPersistence } from "@inferative/visual-editing/persis
 import { MysqlWorkspacePersistence } from "@inferative/workspace/persistence/mysql2";
 import { DatabaseModule } from "./database.module";
 
+// The time-limit filter of this dialect, which the root module lists.
+export { MysqlTimeLimitFilter as HostTimeLimitFilter } from "@inferative/base/persistence/mysql2";
+
 /** The database of the site: the one connection, the migrations and the persistence module of each package. */
 export class PersistenceModule extends Module({
   requires: [LiveEntityAnnouncer, RevisionPurgeDeliveries],
@@ -27,6 +30,7 @@ export class PersistenceModule extends Module({
     DatabaseModule,
     MysqlMigrations,
     MysqlBasePersistence,
+    MysqlStoragePersistence,
     MysqlIdentityPersistence,
     MysqlWorkspacePersistence,
     MysqlNotificationsPersistence,
@@ -44,6 +48,7 @@ export class PersistenceModule extends Module({
   exports: [
     DatabaseModule,
     MysqlBasePersistence,
+    MysqlStoragePersistence,
     MysqlIdentityPersistence,
     MysqlWorkspacePersistence,
     MysqlNotificationsPersistence,

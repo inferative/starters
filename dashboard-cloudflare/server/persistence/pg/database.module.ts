@@ -8,10 +8,8 @@ import { databaseConfig } from "./database.config";
 import { HostDatabase } from "./database";
 
 /**
- * Binds the one connection as {@link PgDatabase} and as `Database`, so a write and the outbox row it buffers
- * commit together. It sits apart from the persistence module, which imports the modules that require it.
- * The connection is bound `coResident: "host"`: on Node, a Durable Object copy of the app takes the host app's
- * instance, so the process keeps one pool and a copy opens no connection of its own.
+ * Binds the one connection as {@link PgDatabase} and as `Database`, so a write and its outbox row commit together.
+ * `coResident: "host"` keeps one pool on Node: a Durable Object copy of the app takes the host's connection.
  */
 export class DatabaseModule extends Module({
   providers: [
@@ -20,7 +18,7 @@ export class DatabaseModule extends Module({
     {
       provide: HostDatabase,
       useFactory: (context: Context, runtimeConfig: RuntimeConfig): HostDatabase =>
-        new HostDatabase(PgHostConfig.sized(databaseConfig, runtimeConfig), context),
+        new HostDatabase(PgHostConfig.withRuntimeSettings(databaseConfig, runtimeConfig), context),
       coResident: "host"
     },
     { provide: [PgDatabase, Database], useExisting: HostDatabase }

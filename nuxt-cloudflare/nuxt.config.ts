@@ -55,9 +55,14 @@ export default defineNuxtConfig({
         // `nodejs_compat`, so the build removes the flag that Nitro adds. 2026-09-07 is the newest date that the
         // pinned miniflare runtime accepts.
         compatibility_date: "2026-09-07",
+        // Phase 5 of `SETUP.md` adds `placement: { mode: "targeted", region: "<cloud>:<region>" }` with the region of
+        // the database, so both Workers run near it. The placement lives here: each `wrangler deploy` writes it again.
         // Workers Logs keeps the log of the Worker: each JSON log line, with the request id of its request, and the
         // wide event of each request. Read it on the Observability page of the Worker in the Cloudflare dashboard.
-        observability: { enabled: true }
+        observability: { enabled: true },
+        // Cloudflare Email Service: the mail of the site goes through this binding, with no credential. Settings ›
+        // Organization › Mail and SMS adds it as a provider ("Send email" in `README.md`).
+        send_email: [{ name: "SEND_EMAIL" }]
       }
     }
   }

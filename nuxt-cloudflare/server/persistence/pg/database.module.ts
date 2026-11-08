@@ -20,7 +20,7 @@ export class DatabaseModule extends Module({
     {
       provide: HostDatabase,
       useFactory: (context: Context, runtimeConfig: RuntimeConfig): HostDatabase =>
-        new HostDatabase(PgHostConfig.sized(databaseConfig, runtimeConfig), context),
+        new HostDatabase(PgHostConfig.withRuntimeSettings(databaseConfig, runtimeConfig), context),
       coResident: "host"
     },
     { provide: [PgDatabase, Database], useExisting: HostDatabase }
