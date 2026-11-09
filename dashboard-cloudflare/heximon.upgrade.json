@@ -21,6 +21,9 @@
         "event": "agents.run.admitted"
       },
       {
+        "event": "agents.run.ended"
+      },
+      {
         "event": "agents.run.pages-pulled"
       },
       {
@@ -28,6 +31,9 @@
       },
       {
         "event": "agents.runner.capacity-changed"
+      },
+      {
+        "event": "agents.runner.presence-changed"
       },
       {
         "event": "agents.task.loop-limit-reached"
@@ -49,6 +55,9 @@
       },
       {
         "event": "assistant.purge.sessions"
+      },
+      {
+        "event": "assistant.room.agent-line"
       },
       {
         "event": "assistant.room.agent-mentioned"
@@ -103,6 +112,9 @@
       },
       {
         "event": "connectors.checks.failed"
+      },
+      {
+        "event": "connectors.flow-mails.due"
       },
       {
         "event": "connectors.pull-request.merged"
@@ -168,7 +180,46 @@
         "event": "files.gallery.updated"
       },
       {
+        "event": "forms.follow-up.received"
+      },
+      {
+        "event": "forms.form.published"
+      },
+      {
+        "event": "forms.form.unpublished"
+      },
+      {
+        "event": "forms.submission.received"
+      },
+      {
         "event": "identity.account.deleted"
+      },
+      {
+        "event": "identity.email.verification-requested"
+      },
+      {
+        "event": "identity.email.verified"
+      },
+      {
+        "event": "identity.engagement.accepted"
+      },
+      {
+        "event": "identity.engagement.ended"
+      },
+      {
+        "event": "identity.engagement.guests-joined"
+      },
+      {
+        "event": "identity.engagement.invited"
+      },
+      {
+        "event": "identity.engagement.offered"
+      },
+      {
+        "event": "identity.engagement.paused"
+      },
+      {
+        "event": "identity.engagement.resumed"
       },
       {
         "event": "identity.grant.ended"
@@ -198,6 +249,9 @@
         "event": "identity.mfa.removed"
       },
       {
+        "event": "identity.organization.time-zone-changed"
+      },
+      {
         "event": "identity.passkey.counter-regression"
       },
       {
@@ -211,6 +265,12 @@
       },
       {
         "event": "identity.password.reset-requested"
+      },
+      {
+        "event": "identity.phone.removed"
+      },
+      {
+        "event": "identity.phone.verified"
       },
       {
         "event": "identity.platform.account_deleted"
@@ -298,6 +358,12 @@
       },
       {
         "event": "localization.fill.requested"
+      },
+      {
+        "event": "location-cache.purge-requested"
+      },
+      {
+        "event": "memory.transcript.session-pending"
       },
       {
         "event": "notifications.chat.message.received"
@@ -416,6 +482,9 @@
       },
       {
         "slot": "lease-end"
+      },
+      {
+        "slot": "location-purge"
       },
       {
         "slot": "login-reset"

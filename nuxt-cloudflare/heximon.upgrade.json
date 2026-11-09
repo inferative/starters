@@ -51,6 +51,9 @@
         "event": "content.schema.synced"
       },
       {
+        "event": "entity.removed"
+      },
+      {
         "event": "files.file.deleted"
       },
       {
@@ -84,6 +87,30 @@
         "event": "identity.account.deleted"
       },
       {
+        "event": "identity.email.verification-requested"
+      },
+      {
+        "event": "identity.email.verified"
+      },
+      {
+        "event": "identity.engagement.accepted"
+      },
+      {
+        "event": "identity.engagement.ended"
+      },
+      {
+        "event": "identity.engagement.invited"
+      },
+      {
+        "event": "identity.engagement.offered"
+      },
+      {
+        "event": "identity.engagement.paused"
+      },
+      {
+        "event": "identity.engagement.resumed"
+      },
+      {
         "event": "identity.grant.ended"
       },
       {
@@ -108,6 +135,9 @@
         "event": "identity.mfa.removed"
       },
       {
+        "event": "identity.organization.time-zone-changed"
+      },
+      {
         "event": "identity.passkey.counter-regression"
       },
       {
@@ -121,6 +151,12 @@
       },
       {
         "event": "identity.password.reset-requested"
+      },
+      {
+        "event": "identity.phone.removed"
+      },
+      {
+        "event": "identity.phone.verified"
       },
       {
         "event": "identity.platform.account_deleted"

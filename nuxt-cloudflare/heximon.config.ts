@@ -1,5 +1,6 @@
 import { defineHeximonConfig } from "@heximon/build";
 import type {} from "@heximon/cloudflare/compiler";
+import { QueuePlugin } from "@heximon/queue/compiler";
 import { inferativeServerPlugins } from "@inferative/base/compiler";
 
 /**
@@ -12,13 +13,17 @@ import { inferativeServerPlugins } from "@inferative/base/compiler";
  */
 export default defineHeximonConfig({
   root: "AppModule",
-  plugins: inferativeServerPlugins({ logging: true }),
+  plugins: [...inferativeServerPlugins({ logging: true }), new QueuePlugin()],
   schedule: { trigger: "single", tick: "* * * * *" },
   runtimeConfig: { file: "./inferative.config.ts", env: { prefix: "INFERATIVE_" } },
   cloudflare: {
     // The Worker of the live site. Heximon writes one Worker for each build: `pnpm build` writes the live Worker,
     // `pnpm build:preview` (`CLOUDFLARE_ENV=preview`) writes the preview Worker, flat.
     name: "my-inferative-site",
+    // Put before each queue name: Cloudflare keeps one queue of each name per account. At most 32 characters. The
+    // Worker consumes the queue `my-inferative-site-email-events`, which Cloudflare Email Service writes its delivery
+    // events to (`server/email-events.handler.ts`).
+    resourcePrefix: "my-inferative-site-",
     // The database. Replace `id` with the id of your Hyperdrive configuration (`wrangler hyperdrive create`). Keep
     // caching off: with caching on, an editor can save a change and then read old content.
     hyperdrive: [{ binding: "HYPERDRIVE", id: "00000000000000000000000000000000" }],
@@ -26,27 +31,24 @@ export default defineHeximonConfig({
     // is fixed. Local development, the preview Worker and the live Worker share one database, so they share one
     // bucket.
     r2Buckets: [{ binding: "FILES_BUCKET", bucketName: "my-inferative-site-files" }],
+    // The store of the site's stamped reads and pages. Replace `id` with the id of your KV namespace
+    // (`wrangler kv namespace create <name>-cache`). The binding name is fixed. A key holds the answer of one stamp,
+    // so the preview Worker shares the namespace.
+    kvNamespaces: [{ binding: "INFERATIVE_CACHE", id: "ffffffffffffffffffffffffffffffff" }],
     // The preview Worker: a push to `main` deploys it. It is named `<live name>-preview` and gets a copy of every
     // binding above and of each Durable Object binding of the composed modules. Its cron list is empty, so only the
-    // live Worker runs the schedule.
+    // live Worker runs the schedule. Both Workers serve one database, so they share its key-value `Storage` and the
+    // hints that empty the response cache of each isolate after an edit.
     environments: {
       preview: {
         crons: [],
-        // The one binding that is not a copy: the `Storage` room of the live Worker. Both Workers serve one database,
-        // so an edit through either one must reach the response cache of both: each isolate keeps its cache in memory
-        // and reads the hint of an edit from this room. `scriptName` is the live Worker's name. Deploy the live Worker
-        // first: the preview deploy fails while that Worker does not exist.
-        durableObjects: [
-          {
-            binding: "STORAGE_ROOM",
-            className: "StorageRoomDO",
-            scriptName: "my-inferative-site"
-          }
-        ]
+        // A queue has one consumer: the live Worker reads the email events queue, so the preview Worker reads none.
+        queues: []
       }
     }
   },
-  // The Durable Object that held the response cache before each isolate kept it in memory. A deploy deletes it and its
-  // data. Delete this entry when a deploy lists it under `removable_entries`.
-  durable: { deletedClasses: ["ResponseCacheRoomDO"] }
+  // The Durable Objects that held the response cache, the key-value `Storage` and the rate limits before the database
+  // held them. A deploy deletes them and their data. On an older install, deploy the preview Worker first: it binds the
+  // storage room of the live Worker until then. Delete an entry when a deploy lists it under `removable_entries`.
+  durable: { deletedClasses: ["ResponseCacheRoomDO", "StorageRoomDO", "RateLimitRoomDO"] }
 });

@@ -1,3 +1,2 @@
-// The config `drizzle-kit` reads (`pnpm db:generate`, `pnpm db:migrate`). It names the database setup of the
-// dashboard.
+// The config that `drizzle-kit` reads.
 export { default } from "./server/persistence/pg/database.config";

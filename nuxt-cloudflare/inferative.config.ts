@@ -11,7 +11,6 @@ export default defineRuntimeConfig({
   dashboard: {
     pages: true,
     prefix: "/admin",
-    render: "client",
     layers: { applets: { pages: false } }
   },
 
@@ -19,7 +18,7 @@ export default defineRuntimeConfig({
     catalog: { serviceName: "my-inferative-site" },
     oauthServer: { enabled: true },
     // One organization, which the first-run step creates: the public site reads its channel. A platform administrator
-    // can change the rule on Settings > Organization > Platform, and the saved rule then wins.
+    // can change the rule on Platform > General, and the saved rule then wins.
     organization: { singleOrganization: true },
     // A password hash is Argon2id at OWASP's low-memory setting: the isolate has about 10 to 20 MiB to spare. A
     // sign-in replaces an older PBKDF2 hash. A Cloudflare Worker derives PBKDF2 with at most 100,000 iterations,
@@ -32,9 +31,9 @@ export default defineRuntimeConfig({
     }
   },
 
-  // The name that people see: every mail of the site comes from it, and an authenticator app shows it.
-  // A platform administrator saves the sender address on Settings > Organization > Platform.
-  app: { name: "My Inferative site" },
+  // The name that people see: an authenticator app shows it. A platform administrator sets the address that the
+  // mail of the site comes from on Settings > Organization > Mail and SMS.
+  app: { name: "My site" },
 
   // This site serves the public pages and the editor, so it loads the words of both surfaces.
   messages: { surfaces: ["editor", "site"] },
@@ -46,7 +45,7 @@ export default defineRuntimeConfig({
   // A site that serves its own API lets its own origin frame it for the visual editor, so `editorOrigins`
   // stays empty here.
   site: {
-    name: "My Inferative site",
+    name: "My site",
     version: "1",
     markdown: true,
     machineDocuments: true,
@@ -62,12 +61,10 @@ export default defineRuntimeConfig({
     readCheckedEntityTypes: { "files.file": "files.file", "files.gallery": "files.file" }
   },
 
-  // The deployed Worker runs many isolates, so command idempotency and the approval latches keep their keys in one
-  // Durable Object that every isolate reaches. `nuxt dev` keeps process memory. Name the region of your database in
-  // `locationHint` (`weur`, `enam`, `apac` and so on): Cloudflare then creates that object there. `null` creates it
-  // near its first caller. An object never moves after it is created.
+  // The deployed Worker runs many isolates, so the approval latches, the caches and the rate limits keep their keys in
+  // the database (`storage_entries`), which every isolate reaches. `nuxt dev` keeps process memory.
   $production: {
-    base: { storage: { driver: "durable-object" }, durable: { locationHint: null } },
+    base: { storage: { driver: "database" } },
     // A deployed build writes each log line as one JSON line with the request id of its request. An error shows
     // only its facts (name, code, status). `INFERATIVE_LOGGER_REPORTER=pretty` gives the human form.
     logger: { reporter: "json" }

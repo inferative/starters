@@ -45,8 +45,10 @@ if (import.meta.server) {
   }
 }
 
+// The entry read arms on the next tick, once the resolve named the entry. The page draws no trail and no
+// children, so it does not await `page.readyTree()`, which reads both under the stamp of the render.
 await nextTick();
-await Promise.all([page.readyTree(), body.suspense()]);
+await body.suspense();
 
 const title = computed(() =>
   SiteRouteResolution.titleOf(body.data.value?.document, page.node.value?.title ?? "")

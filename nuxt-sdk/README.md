@@ -31,9 +31,10 @@ Inferative dashboard where your role can manage channels and API keys.
    there. The sync key goes into `INFERATIVE_MANIFEST_TOKEN` only: no `NUXT_PUBLIC_` value may hold it, because the
    browser reads those.
 5. **Install.** Run `pnpm install`.
-6. **Sync the manifest.** Run `pnpm check:manifest` (no network, no key), then `pnpm sync:manifest`. The sync publishes
-   `shared/site.ts` to the channel and waits until the channel serves it. Exit code `0` means it does. Run the sync
-   again after each change to `shared/site.ts`.
+6. **Sync the manifest.** Run `pnpm check:manifest` (no network, no key), then `pnpm sync:manifest --first-sync`, then
+   `pnpm sync:manifest`. A sync publishes `shared/site.ts` to the channel and waits until the channel serves it. Exit
+   code `0` means it does. A new channel refuses `sharedSection` until it has served a first schema, so the first sync
+   uses `--first-sync` once. Run `pnpm sync:manifest` again after each change to `shared/site.ts`.
 7. **Write a page.** In the dashboard, open the content of the channel, create a page with a title, a slug and some
    sections, publish it, and place it in the page tree of the channel (the root page answers `/`).
 8. **Run it.** Run `pnpm dev` and open http://localhost:3000. The page tree names the page of each address, and the
@@ -42,6 +43,33 @@ Inferative dashboard where your role can manage channels and API keys.
 An address that no page answers shows a `404` page, and a moved page redirects (`308`) to its current address. When the
 API does not answer, the home page shows an error state, every other page answers `503`, and `/api/latest-posts`
 answers `502` (or `503` when `NUXT_PUBLIC_INFERATIVE_API_BASE_URL` is empty).
+
+## SEO and the machine documents
+
+`nuxt.config.ts` sets `inferativeSite: { site: { machineDocuments: true } }`, so the site serves these documents from
+the channel, with no code of its own (the option is `false` by default):
+
+| Address | Document |
+| :-- | :-- |
+| `/sitemap.xml`, `/sitemap-<n>.xml` | The sitemap index and its chunks |
+| `/robots.txt` | The crawl policy of the channel |
+| `/llms.txt`, `/llms-full.txt` | The summary and the full corpus for a language model |
+| `/feeds/<key>.rss`, `.atom`, `.json` | One syndication feed |
+| `/<key>.txt` | The IndexNow key file, at the channel's current key only |
+
+The documents answer `503` with `Retry-After: 30` while the API does not answer. The SEO settings, the feeds and the
+IndexNow key are set in the dashboard, on the **SEO** screen (choose the website in the **Channel** switcher). A page writes its title, canonical link,
+hreflang links and JSON-LD with `useSiteHead` (see `app/pages/[...slug].vue`), and a reader that asks for
+`text/markdown` gets the page as Markdown. To keep a path of the site out of `robots.txt`, add it to
+`inferativeSite.site.robots.disallowPrefixes`. The `inferative` skill (`references/site-sdk-seo-and-machine-documents.md`)
+has the rules, the options and a `curl` check list.
+
+Check them once the site runs:
+
+```sh
+curl -si http://localhost:3000/sitemap.xml   # 200, application/xml
+curl -si http://localhost:3000/robots.txt    # 200, text/plain
+```
 
 ## Visual editing
 
@@ -58,24 +86,23 @@ state it in `nuxt.config.ts` before the build: `inferativeSite: { site: { editor
 With no origin known, an edit render answers `frame-ancestors 'none'`. In the dashboard, set the **Preview** address of the
 channel to the address of this website.
 
-## The read cache
+## The cache
 
-The server keeps the API's answers, so a page renders fast and still renders when the API is slow or down:
+A published page reads under the channel's stamp: one read of the stamp, then the route and the shell of the page
+under it. The server keeps those answers, and the whole page, until the stamp moves:
 
-- Within the answer's lifetime (30 seconds for a content read), a render sends no API read.
-- After it, a render gets the stored answer at once, and one read refreshes it behind the render.
-- When the API fails or does not answer in time, a page that was read before renders from the stored answer for up to
-  one day, and the server writes one warning line to its log.
-- A preview and an edit render always read the API. The browser has its own cache.
+- A page that a reader already asked for renders from the kept answers, and a kept page goes out with no render.
+- A publish moves the stamp, so the next request reads the new content. A downstream cache keeps a page no longer than
+  the stamp is valid.
+- A preview and an edit render always read the API, and nothing keeps them. The browser has its own cache.
+- A read names the channel key in its query and sends no custom header, so a browser read sends no CORS preflight.
 
-The answers are in memory by default: 1000 answers and 16 MiB. Set the limits and the times in `.env` with the
-`NUXT_INFERATIVE_READ_CACHE_*` values, for example `NUXT_INFERATIVE_READ_CACHE_STALE_IF_ERROR_SECONDS=3600`. A site
-on more than one server or Worker mounts a shared store (KV, Redis) at `inferative-reads` under `nitro.storage` in
-`nuxt.config.ts`. The README of `@inferative/sdk`, "A site with its own markup", lists every setting.
+A Node build keeps the answers in the folder `.data/inferative-cache` (`inferativeSite.cache.store: "auto"`); another
+preset and `nuxt dev` keep them in memory. A site on more than one server or Worker mounts a shared store (KV, Redis) at
+`inferative-reads` under `nitro.storage` in `nuxt.config.ts`. The README of `@inferative/sdk`, "A site with its own
+markup", lists every setting.
 
-The route `/api/latest-posts` builds its own client, which reads the API each time. To read it through the cache
-too, give `Inferative.client` the option `readCache: SiteReadCache.of(event)` (`SiteReadCache` is in
-`@inferative/sdk/site`).
+The route `/api/latest-posts` builds its own client, which reads the API each time.
 
 ## Build and run with Node
 
