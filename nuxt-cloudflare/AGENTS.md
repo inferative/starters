@@ -6,7 +6,7 @@ write code. The Heximon DI rules differ from NestJS and Angular, and a wrong ver
 - Inferative skill: `npx skills add https://inferative.dev`. It covers the Nuxt layers, the dashboard, and the site SDK.
 - Heximon skill: `npx skills add https://heximon.dev`. It covers modules, controllers, and the compile-time DI.
 
-- Setup and daily work: `npx skills add https://inferative.dev --skill client-site-setup --global`, in the user folder. Its file `references/daily-work.md` covers deploy, release, schema changes, mail and Worker secrets.
+- Setup and daily work: `SETUP.md`. The Inferative skill runs its steps. Its section "Daily work" covers deploy, release, schema changes, mail and Worker secrets.
 
 ## Rules that matter here
 
@@ -14,12 +14,12 @@ write code. The Heximon DI rules differ from NestJS and Angular, and a wrong ver
 - Each module needs its persistence module and its tables. Add them to the files of your database setup.
 - Both database setups sit in `server/persistence/`, and `heximon.config.ts` pins `root: "AppModule"`. The unused setup compiles with no warning.
 - No decorators. Dependencies are constructor parameters. Never silence a type error with `as any`.
-- The browser draws the screens below `/admin` (`dashboard.render: "client"` in `inferative.config.ts`), and the Worker renders the site. The Worker is about 37 MiB of code; Cloudflare takes at most 64 MiB.
+- The browser draws the screens below `/admin`, and the Worker renders the site. The Worker is about 37 MiB of code; Cloudflare takes at most 64 MiB.
 - The shell of the screens below `/admin` is a static file of the build (`.output/public/admin/_shell.html`, with `_redirects` and `_headers`): a page document below `/admin` does not start the Worker. Do not add a file named `_redirects` or `_headers` to `public/`, and do not serve a route of your own below `/admin`.
 - The site serves one origin, so it has no CORS policy and no frame-source policy. The response cache is the one policy, held in the memory of each isolate (`IsolateResponseCacheModule`).
 - The Worker name and the bindings are in `cloudflare` of `heximon.config.ts`. Heximon copies each binding into the preview Worker, the Durable Object bindings of the modules too. Write a binding once.
 - `pnpm build` writes the live Worker. `pnpm build:preview` writes the preview Worker. `pnpm deploy:live` and `pnpm deploy:preview` deploy the last build and refuse a bundle of the other Worker (`deploy/assert-worker.mjs`).
-- In `environments.preview` of `heximon.config.ts`, `STORAGE_ROOM` keeps `scriptName` set to the live Worker's name: both Workers read the hint that empties the response cache from one room. Deploy the live Worker before the first preview deploy.
+- The key-value storage and the rate limits are rows of the database (`base.storage.driver: "database"`), so the live and the preview Worker read the same hint that empties the response cache.
 - The site has no mail provider: each mail goes to the log. "Send email" in `README.md` adds one.
 - Never commit a secret. Put values in `.env`, and Worker secrets in `wrangler secret bulk`.
 - A migration is never edited by hand. Change `schema.ts` or a module, then run `pnpm db:generate`.

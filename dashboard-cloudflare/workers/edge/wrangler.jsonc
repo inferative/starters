@@ -1,0 +1,28 @@
+// The edge Worker: it fronts the whole host, on its `workers.dev` address and on a custom domain. It holds no database
+// client and no secret. The public reads of sites answer from its Workers Cache at the visitor's data centre; a miss
+// goes to the dashboard Worker's fill entrypoint, and every other request to the dashboard Worker as it is.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "my-inferative-edge",
+  "main": "src/index.ts",
+  // The date of the dashboard Worker.
+  "compatibility_date": "2026-09-07",
+  "workers_dev": true,
+  // No placement: the Worker runs where the visitor is.
+  "observability": { "enabled": true },
+  // The Workers Cache is on for the cached entrypoint alone. The epoch in the address separates the answers of two
+  // builds, so a new version of this Worker keeps the cached answers.
+  "cache": { "enabled": false, "cross_version_cache": true },
+  "exports": { "PublicReadEntrypoint": { "type": "worker", "cache": { "enabled": true } } },
+  "services": [
+    // Every request that is not a public read, WebSocket upgrades included.
+    { "binding": "DASHBOARD", "service": "my-inferative-dashboard" },
+    // The misses of the cached entrypoint. The dashboard Worker answers a fill only with these props.
+    {
+      "binding": "PUBLIC_READ_FILL",
+      "service": "my-inferative-dashboard",
+      "entrypoint": "PublicReadFillEntrypoint",
+      "props": { "publicReadFill": true }
+    }
+  ]
+}

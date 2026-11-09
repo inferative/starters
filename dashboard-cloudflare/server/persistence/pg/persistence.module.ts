@@ -16,18 +16,14 @@ import { HostDatabase } from "./database";
 import { DatabaseModule } from "./database.module";
 
 /**
- * The database of the dashboard: the one connection, the migrations and the three stores of the assistant's API runs.
- * The persistence module of each package is a line of `server/app.module.ts`, not of this module: the root reads every
- * export of a module of this app when it loads, so through this module the first request that reaches the root would
- * load the persistence of every package.
+ * The connection, the migrations and the stores of the assistant's API runs. Each package's persistence module stays a
+ * line of `server/app.module.ts`: here, the first request would load them all.
  */
 export class PersistenceModule extends Module({
   requires: [DurableTimerStore],
   imports: [DatabaseModule, PgMigrations],
   providers: [
-    // The workflow engine of `nuxt dev` resolves its `Database` and its timer store in the scope of the module that
-    // owns these stores, so they sit here: the connection is an import, and the timer store a requirement that the
-    // root fills from `PgDurableTimerTier`.
+    // The workflow engine of `nuxt dev` resolves its `Database` and its timer store in the scope of these stores.
     {
       provide: WorkflowStepStore,
       useFactory: (database: HostDatabase): WorkflowStepStore =>

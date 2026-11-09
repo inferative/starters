@@ -5,7 +5,7 @@ const site = useSiteChannel();
 
 await site.ready();
 
-const siteName = computed(() => site.channel.data.value?.name ?? "My Inferative site");
+const siteName = computed(() => site.name.value ?? "My site");
 const currentYear = new Date().getFullYear();
 
 // The home page of the language the page is read in: `/`, or `/hu` when the addresses carry a language segment.

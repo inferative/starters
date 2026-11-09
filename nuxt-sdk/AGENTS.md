@@ -2,7 +2,7 @@
 
 This is a Nuxt website that reads one channel of an [Inferative](https://inferative.dev) deployment over HTTP, with
 `@inferative/sdk`. Read the Inferative skill before you write code: `npx skills add https://inferative.dev`. It covers
-the site SDK.
+the site SDK. `SETUP.md` holds the setup steps and the daily work, which the skill runs.
 
 ## Rules that matter here
 
