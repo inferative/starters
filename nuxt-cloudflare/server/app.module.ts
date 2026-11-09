@@ -3,10 +3,7 @@ import { Module } from "@heximon/runtime";
 import { ActivityRecorderModule } from "@inferative/activity/recorder";
 import { ActivityModule } from "@inferative/activity/server";
 import { ActivityCapabilitiesModule } from "@inferative/activity/capabilities";
-import {
-  CloudflareRateLimitInfrastructure,
-  CloudflareStorageInfrastructure
-} from "@inferative/base/infrastructure/cloudflare";
+import { StorageModule, StorageRateLimitModule } from "@inferative/base/storage";
 import { WideEventConsoleDrain } from "@heximon/logging";
 import { RenderFrameFallthrough } from "@inferative/base/render";
 import { BaseModule } from "@inferative/base/server";
@@ -19,6 +16,7 @@ import { ContentCapabilitiesModule } from "@inferative/content/capabilities";
 import {
   ContentPagesJointModule,
   ContentPublishingJointModule,
+  DashboardCapabilitiesModule,
   DashboardModule
 } from "@inferative/dashboard/server";
 import { CloudflareFilesStoreInfrastructure } from "@inferative/files/infrastructure/cloudflare";
@@ -31,8 +29,11 @@ import {
   IdentityDiscoveryModule,
   IdentityModule
 } from "@inferative/identity/server";
-import { NotificationsModule } from "@inferative/notifications/server";
-import { NotificationsCapabilitiesModule } from "@inferative/notifications/capabilities";
+import { NotificationsModule, SendingSettingsModule } from "@inferative/notifications/server";
+import {
+  NotificationsCapabilitiesModule,
+  SendingSettingsCapabilitiesModule
+} from "@inferative/notifications/capabilities";
 import { PagesModule } from "@inferative/pages/server";
 import { PagesCapabilitiesModule } from "@inferative/pages/capabilities";
 import { PublishingModule } from "@inferative/publishing/server";
@@ -50,7 +51,8 @@ import { VisualEditingCapabilitiesModule } from "@inferative/visual-editing/capa
 import { IdentityHostModule, WorkspaceModule } from "@inferative/workspace/server";
 import { WorkspaceCapabilitiesModule } from "@inferative/workspace/capabilities";
 // The database setup this site runs on (Postgres). To use MySQL, change this import: see "Use MySQL" in README.md.
-import { PersistenceModule } from "./persistence/pg/persistence.module";
+import { EmailEventsHandler } from "./email-events.handler";
+import { HostTimeLimitFilter, PersistenceModule } from "./persistence/pg/persistence.module";
 
 /**
  * The root module of this site. Each line of `imports` adds one capability: delete a line to remove it, and add
@@ -63,14 +65,17 @@ export class AppModule extends Module({
   imports: [
     PersistenceModule,
     BaseModule,
-    CloudflareStorageInfrastructure,
+    // The one `Storage` of the site, shared by every isolate: the `storage_entries` table of the database
+    // (`base.storage.driver: "database"`).
+    StorageModule,
     // The response cache, in the memory of each isolate within the `responseCache` bounds. An edit empties it in its
     // isolate at once and in every other isolate within a second, through a hint in the `Storage` above.
     IsolateResponseCacheModule,
     CloudflareFilesStoreInfrastructure,
     // The S3 path to the same bucket, for `nuxt dev`. `dev: true` drops it, and the AWS SDK, from a production build.
     { module: FilesR2DevelopmentStore, dev: true },
-    CloudflareRateLimitInfrastructure,
+    // The rate limits, counted in the site's `Storage`.
+    StorageRateLimitModule,
     IdentityKeysModule,
     IdentityModule,
     IdentityDiscoveryModule,
@@ -79,11 +84,15 @@ export class AppModule extends Module({
     WorkspaceModule,
     WorkspaceCapabilitiesModule,
     DashboardModule,
+    DashboardCapabilitiesModule,
     ActivityRecorderModule,
     ActivityModule,
     ActivityCapabilitiesModule,
     NotificationsModule,
     NotificationsCapabilitiesModule,
+    // The Mail and SMS screen and the providers' delivery events, for an operator of the platform organization.
+    SendingSettingsModule,
+    SendingSettingsCapabilitiesModule,
     SearchModule,
     SearchCapabilitiesModule,
     ChannelsModule,
@@ -105,7 +114,11 @@ export class AppModule extends Module({
     ContentPagesJointModule,
     ContentPublishingJointModule
   ],
+  // The queue that Cloudflare Email Service writes its delivery events to. Delete the line and the file to remove it.
+  queue: { raw: [EmailEventsHandler] },
   http: {
+    // A statement over a time limit of the pool is a 503 that offers a retry only for a safe method.
+    errorFilters: [HostTimeLimitFilter],
     headers: [ChannelVaryHeaderContributor]
   },
   app: {

@@ -52,7 +52,7 @@ export default defineEventHandler(async (event) => {
   } catch (failure) {
     throw new HTTPError({
       status: 502,
-      message: "The Inferative API did not answer the read of the latest posts.",
+      message: "The content API did not answer the read of the latest posts.",
       cause: failure
     });
   }

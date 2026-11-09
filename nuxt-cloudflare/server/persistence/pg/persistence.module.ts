@@ -2,7 +2,7 @@ import { Module } from "@heximon/runtime";
 import { PgActivityPersistence } from "@inferative/activity/persistence/pg";
 import { LiveEntityAnnouncer } from "@inferative/base/entity";
 import { RevisionPurgeDeliveries } from "@inferative/base/revisions";
-import { PgBasePersistence } from "@inferative/base/persistence/pg";
+import { PgBasePersistence, PgStoragePersistence } from "@inferative/base/persistence/pg";
 import { PgMigrations } from "@inferative/base/persistence/pg/migrations";
 import { PgChannelsPersistence } from "@inferative/channels/persistence/pg";
 import { PgContentPersistence } from "@inferative/content/persistence/pg";
@@ -20,6 +20,9 @@ import { PgVisualEditingPersistence } from "@inferative/visual-editing/persisten
 import { PgWorkspacePersistence } from "@inferative/workspace/persistence/pg";
 import { DatabaseModule } from "./database.module";
 
+// The time-limit filter of this dialect, which the root module lists.
+export { PgTimeLimitFilter as HostTimeLimitFilter } from "@inferative/base/persistence/pg";
+
 /** The database of the site: the one connection, the migrations and the persistence module of each package. */
 export class PersistenceModule extends Module({
   requires: [LiveEntityAnnouncer, RevisionPurgeDeliveries],
@@ -27,6 +30,7 @@ export class PersistenceModule extends Module({
     DatabaseModule,
     PgMigrations,
     PgBasePersistence,
+    PgStoragePersistence,
     PgIdentityPersistence,
     PgWorkspacePersistence,
     PgNotificationsPersistence,
@@ -44,6 +48,7 @@ export class PersistenceModule extends Module({
   exports: [
     DatabaseModule,
     PgBasePersistence,
+    PgStoragePersistence,
     PgIdentityPersistence,
     PgWorkspacePersistence,
     PgNotificationsPersistence,

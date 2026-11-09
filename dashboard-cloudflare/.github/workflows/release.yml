@@ -1,5 +1,6 @@
-# A published release runs the migrations and deploys the two Workers: the applets Worker, then the dashboard Worker,
-# which binds the applet supervisor of the applets Worker by name (README, "The two Workers"). A manual run does the same.
+# A published release runs the migrations, writes the data of the release and deploys the four Workers: the applets
+# Worker and the rooms Worker, then the dashboard Worker, which binds the applet supervisor and the rooms by name, then the edge Worker, which binds the
+# dashboard Worker (README, "The three Workers" and "Public read cache"). A manual run does the same.
 name: Release
 
 on:
@@ -48,11 +49,21 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
+      # The plans and the catalog of outside accounts are data of the release. Each task writes only what the database
+      # lacks, so a second run writes nothing. It runs the app on the runner in development mode, with no Worker binding.
+      - name: Write the data of the release
+        run: pnpm release:data
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
       - name: Build the dashboard Worker
         run: pnpm build
 
       - name: Build the applets Worker
         run: pnpm build:applets
+
+      - name: Build the rooms Worker
+        run: pnpm build:rooms
 
       # It goes first: the dashboard Worker binds its applet supervisor by name.
       - name: Deploy the applets Worker
@@ -61,8 +72,39 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
+      # It goes before the dashboard Worker too: the dashboard Worker binds its rooms by name. While it still holds the
+      # namespace of a room that ran here before, which the deployed dashboard Worker binds, it waits for the step after
+      # the dashboard Worker.
+      - name: Deploy the rooms Worker
+        run: pnpm run deploy:rooms
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      # On the first deploy the edge Worker does not exist yet, so this deploy leaves the PUBLIC_READ_PURGE binding out.
       - name: Deploy the dashboard Worker
         run: pnpm run deploy:live
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      # Only when the step before the dashboard Worker waited: the upload deletes the old rooms that it no longer binds.
+      - name: Deploy the rooms Worker after the dashboard Worker
+        run: pnpm run deploy:rooms:after
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      # It goes last: it binds the dashboard Worker and its fill entrypoint by name.
+      - name: Deploy the edge Worker
+        run: pnpm run deploy:edge
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      # Only after the first deploy: the dashboard Worker again, now with the binding to the edge Worker's cache.
+      - name: Bind the dashboard Worker to the edge Worker's cache
+        run: pnpm run deploy:bind
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

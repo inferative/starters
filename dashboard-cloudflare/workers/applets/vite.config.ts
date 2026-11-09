@@ -6,8 +6,7 @@ export default defineConfig({
   plugins: [heximon()],
   build: {
     rolldownOptions: {
-      // An isolate keeps the source of the Worker in its heap, and V8 keeps a source with one character above
-      // Latin-1 in two bytes per character. The Worker escapes every character above ASCII and stays minified.
+      // ASCII output halves the heap that V8 needs for a source with a non-Latin-1 character.
       output: { minify: { compress: true, mangle: true, codegen: { asciiOnly: true } } }
     }
   }
