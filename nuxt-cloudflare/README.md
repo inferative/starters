@@ -17,7 +17,7 @@ A push to `main` deploys a preview Worker. A published release deploys the live 
 | `server/persistence/pg/` | The Postgres setup: the connection, the config, the persistence module and `schema.ts`. |
 | `server/persistence/mysql/` | The MySQL setup. It is the same set of files as the Postgres setup. |
 | `drizzle.config.ts` | The config of `drizzle-kit`. It names the database setup in use. |
-| `inferative.config.ts` | The values that this site changes from the package defaults. `dashboard.render: "client"` makes the browser draw the screens below `/admin`; the Worker still renders the site. The static assets answer each address below `/admin` with the shell file of the build, so a page document there does not start the Worker. The Worker is about 37 MiB of code (8.4 MiB with gzip, 757 modules), about 2.8 MiB less than with the server render of the screens. Cloudflare takes at most 64 MiB. |
+| `inferative.config.ts` | The values that this site changes from the package defaults. The browser draws the screens below `/admin`; the Worker still renders the site. The static assets answer each address below `/admin` with the shell file of the build, so a page document there does not start the Worker. The Worker is about 37 MiB of code (8.4 MiB with gzip, 757 modules). Cloudflare takes at most 64 MiB. |
 | `nuxt.config.ts` | The Nuxt layers, the Workers preset and the compatibility date. |
 | `heximon.config.ts` | The compiler plugins, the one cron trigger of the schedule, and the Worker name and bindings with the preview environment (`cloudflare`). The preview environment binds the `Storage` room of the live Worker. `durable.deletedClasses` names the Durable Object of the earlier response cache, which a deploy deletes. |
 | `shared/site.ts` | The content types of the site (the page type and the menu type) and its sections. |
@@ -59,10 +59,17 @@ in the environment.
 Replace every placeholder:
 
 - In `heximon.config.ts`, the Worker name (`cloudflare.name`). The preview Worker is `<name>-preview`.
-- In `heximon.config.ts`, the `scriptName` of `STORAGE_ROOM` in `environments.preview`: the name of the live Worker.
 - In `heximon.config.ts`, the id of the Hyperdrive configuration (`wrangler hyperdrive create`). Keep its caching off.
 - In `heximon.config.ts`, the name of the R2 bucket for files (`FILES_BUCKET`). Create it once:
   `wrangler r2 bucket create <site>-files`. Both Workers and every local run use this one bucket.
+- In `heximon.config.ts`, the `resourcePrefix` (`<site>-`). It goes before the name of the queue that the live Worker
+  reads. Create the queue once: `wrangler queues create <site>-email-events`. Only the live Worker reads it.
+
+Run both Workers in the region of the database. Without a placement, a Worker runs in the data centre of each visitor,
+and every statement crosses to the database's region. Add the placement to the `nitro.cloudflare.wrangler` block of
+`nuxt.config.ts`, for example `placement: { mode: "targeted", region: "aws:eu-central-1" }`; the preview Worker takes
+it too. Set it there, not in the Cloudflare dashboard: each `wrangler deploy` writes the config of the Worker again.
+Phase 5 of `SETUP.md` writes it from the database region.
 
 For local development, create an R2 access key in the Cloudflare dashboard: **R2 object storage**, then **Manage** beside
 **API Tokens**, then **Create Account API token** (an account token stays valid when a developer leaves; a user token
@@ -81,12 +88,10 @@ Heximon writes one Worker for each build into `.output/server/wrangler.json`. `p
 `pnpm build:preview` sets `CLOUDFLARE_ENV=preview` and writes the preview Worker, with no `env` block.
 Each deploy script deploys the last build. `deploy/assert-worker.mjs` stops it with a message when the last build is the other Worker.
 
-Both Workers use one database, so an edit through either one must reach the response cache of both. In
-`environments.preview` of `heximon.config.ts`, `STORAGE_ROOM` binds the `Storage` room of the live Worker
-(`scriptName`): this one binding replaces the copy. An edit through either dashboard writes the hint there, and every
-isolate of both Workers empties its response cache within a second. The preview Worker also keeps its other keys in
-that room (the approval latches and the short-lived keys), with the code on `main`; this is accepted. `RATE_LIMIT_ROOM`
-stays per Worker.
+Both Workers use one database, so an edit through either one must reach the response cache of both. The hint that
+empties the response cache is a row of that database, so every isolate of both Workers reads the same hint and empties
+its response cache within a second. Both Workers also share the other keys of the store (the approval latches and the
+short-lived keys) and the rate limits; this is accepted.
 
 A site whose deployed preview Worker still binds `RESPONSE_CACHE_ROOM` deploys the preview Worker first: Cloudflare
 does not delete `ResponseCacheRoomDO` of the live Worker while another Worker binds it.
@@ -113,25 +118,25 @@ nightly backup"). Do not rotate again before then: there is one slot for the pre
 The signing key may differ between `.env` and each Worker. This site keeps no secret store, so it does not make the
 key itself. The passkey settings and the links in mail come from the address of the request, so set none of them.
 The site runs one organization: `identity.organization.singleOrganization` in `inferative.config.ts`. A platform
-administrator can change the rule on Settings > Organization > Platform. The mail sender and the IndexNow switch are on
-the same tab, so set no variable for them.
+administrator can change the rule on Platform > General. The mail setup is on Settings > Organization > Mail and SMS, and the
+IndexNow switch is on Platform > Integrations, so set no variable for them.
 
 ### Older variables
 
-A site made before the root secret and the settings screens may still set these. A production boot logs one warning
-for each one that is set, and says where its value lives now.
+A site made before the root secret and the settings screens may still set these.
 
 | Variable | What the site does with it | Retire it |
 | :-- | :-- | :-- |
 | `INFERATIVE_IDENTITY_SETUP_TOKEN` | It wins over the token of the root. | Delete it: the first-run step then takes the token of the root. |
 | `INFERATIVE_BASE_SIGNED_ACCESS_SIGNING_KEYS` | It wins over the keys of the root. | Delete it from `.env` and both Workers at once. The preview links that its keys signed stop working. |
-| `INFERATIVE_IDENTITY_MFA_ENCRYPTION_KEY` | With the root set, it only decrypts. A secret is sealed again under the root's key at its next sign-in. | Run `pnpm mfa:reseal`. Delete the key only when the task reports `remaining: 0` and the outbox holds no account mail (an invitation, a password reset) queued before that reseal: the link of such a mail is sealed under a key of the MFA key, and a link that no key opens drops its mail. |
+| `INFERATIVE_IDENTITY_MFA_ENCRYPTION_KEY` | With the root set, it only decrypts the two-factor secrets that it sealed. | Run `pnpm mfa:reseal`. Delete the key only when the task reports `remaining: 0` and the outbox backlog (`/api/ready`) shows no pending and no dead-lettered message (or you dealt with each dead letter: a requeued mail cannot open its link once the key is gone): the task counts two-factor secrets only, and an account mail (an invitation, a password reset) that is still queued under the key is dropped when the key goes. |
 | `INFERATIVE_IDENTITY_ORGANIZATION_SINGLE_ORGANIZATION` | It applies until a platform administrator saves the rule. | Delete it: `inferative.config.ts` sets the rule. |
-| `INFERATIVE_NOTIFICATIONS_SENDER_EMAIL`, `INFERATIVE_NOTIFICATIONS_SENDER_NAME` | They apply only until a platform administrator saves the mail sender. | Save the address and the name under "Mail sender" on Settings › Organization › Platform, then delete them from `.env` and both Workers. |
-| `INFERATIVE_SEO_INDEX_NOW_ENABLED` | It applies only until a platform administrator saves the switch. | Save the IndexNow switch under "Background work" on Settings › Organization › Platform, then delete it. |
+| `INFERATIVE_NOTIFICATIONS_SENDER_EMAIL`, `INFERATIVE_NOTIFICATIONS_SENDER_NAME` | Nothing: no setting reads them. | Add the address on Settings › Organization › Mail and SMS ("Send email"), then delete them from `.env` and both Workers. |
+| `INFERATIVE_MAIL_RESEND_API_KEY` | Nothing, once `server/mail.module.ts` of the older "Send email" recipe is gone. | Delete the module, its import and the variable from `.env` and both Workers. |
+| `INFERATIVE_SEO_INDEX_NOW_ENABLED` | It applies only until a platform administrator saves the switch. | Save the IndexNow switch under "Background work" on Platform › Integrations, then delete it. |
 
 An older site may also set `INFERATIVE_IDENTITY_WEBAUTHN_RP_ID` and `INFERATIVE_IDENTITY_WEBAUTHN_ALLOWED_ORIGINS`.
-They still win over the address of the request, and no boot warns about them. A value that names a real domain (an RP
+They still win over the address of the request. A value that names a real domain (an RP
 ID of the parent domain, such as `example.com` for `admin.example.com`, or the origin of a preview or a native client)
 is a valid override: keep it, because the passkeys made under that RP ID stop working when it goes. Delete only the
 `http://localhost` placeholder of an older `.env.example` (a native origin such as `capacitor://localhost` stays), and never copy it to a Worker: it breaks passkeys there.
@@ -163,48 +168,72 @@ After an upgrade to a new release, run `pnpm db:generate` and commit the migrati
 
   On MySQL, write each name in backticks.
 
+- **An install made before a draft that equals the live version stopped counting as a change.** No schema changes.
+  Run the three statements below once, in this order: on the database by hand, or in a custom migration
+  (`pnpm exec drizzle-kit generate --custom --name content_drafts_equal_live`, with the statements in its
+  `migration.sql`). A live entry whose draft holds the live document no longer has unpublished changes, its page in
+  the pages tree loses the mark of unpublished changes, and a publication whose live version the entry serves takes
+  that version as its candidate again. A second run changes nothing.
+
+  ```sql
+  UPDATE "content_entries" SET "published_source_revision" = "draft_revision", "version" = "version" + 1 WHERE "status" = 'published' AND "published_document" IS NOT NULL AND "draft_revision" > "published_source_revision" AND "published_document" = "document";--> statement-breakpoint
+  UPDATE "page_placements" AS "p" SET "unpublished_changes" = false, "version" = "p"."version" + 1 FROM "content_entries" AS "e" WHERE "p"."unpublished_changes" = true AND "e"."id" = "p"."entry_id" AND "e"."organization_id" = "p"."organization_id" AND "e"."type_key" = "p"."entry_type" AND "e"."status" = 'published' AND "e"."draft_revision" <= "e"."published_source_revision";--> statement-breakpoint
+  UPDATE "publications" AS "p" SET "candidate_revision_id" = "p"."live_revision_id", "title" = "r"."title", "version" = "p"."version" + 1 FROM "content_entries" AS "e", "publication_revisions" AS "r" WHERE "p"."live_revision_id" IS NOT NULL AND "p"."candidate_revision_id" IS DISTINCT FROM "p"."live_revision_id" AND "p"."status" <> 'archived' AND "e"."id" = "p"."entity_id" AND "e"."organization_id" = "p"."organization_id" AND "e"."type_key" = "p"."entity_type" AND "e"."status" = 'published' AND "e"."published_revision_id" = "p"."live_revision_id" AND "e"."draft_revision" <= "e"."published_source_revision" AND "r"."id" = "p"."live_revision_id";
+  ```
+
+  On MySQL:
+
+  ```sql
+  UPDATE `content_entries` SET `published_source_revision` = `draft_revision`, `version` = `version` + 1 WHERE `status` = 'published' AND `published_document` IS NOT NULL AND `draft_revision` > `published_source_revision` AND `published_document` = `document`;--> statement-breakpoint
+  UPDATE `page_placements` AS `p` INNER JOIN `content_entries` AS `e` ON `e`.`id` = `p`.`entry_id` AND `e`.`organization_id` = `p`.`organization_id` AND `e`.`type_key` = `p`.`entry_type` SET `p`.`unpublished_changes` = false, `p`.`version` = `p`.`version` + 1 WHERE `p`.`unpublished_changes` = true AND `e`.`status` = 'published' AND `e`.`draft_revision` <= `e`.`published_source_revision`;--> statement-breakpoint
+  UPDATE `publications` AS `p` INNER JOIN `content_entries` AS `e` ON `e`.`id` = `p`.`entity_id` AND `e`.`organization_id` = `p`.`organization_id` AND `e`.`type_key` = `p`.`entity_type` INNER JOIN `publication_revisions` AS `r` ON `r`.`id` = `p`.`live_revision_id` SET `p`.`candidate_revision_id` = `p`.`live_revision_id`, `p`.`title` = `r`.`title`, `p`.`version` = `p`.`version` + 1 WHERE `p`.`live_revision_id` IS NOT NULL AND NOT (`p`.`candidate_revision_id` <=> `p`.`live_revision_id`) AND `p`.`status` <> 'archived' AND `e`.`status` = 'published' AND `e`.`published_revision_id` = `p`.`live_revision_id` AND `e`.`draft_revision` <= `e`.`published_source_revision`;
+  ```
+
+- **An install made before a shared entry was found on every website.** No schema changes. Run the statement below
+  once: on the database by hand, or in a custom migration (`pnpm exec drizzle-kit generate --custom --name
+  content_search_shared_entries`, with the statement in its `migration.sql`). The search document of an entry that
+  every website of its type shares then names no website, so the Content list of each such website finds the entry.
+  A second run changes nothing.
+
+  ```sql
+  UPDATE "search_index" AS "s" SET "channel_id" = NULL FROM "content_entries" AS "e" WHERE "s"."result_group" = 'content' AND "s"."channel_id" IS NOT NULL AND "e"."id" = "s"."entity_id" AND "e"."type_key" = "s"."entity_type" AND "e"."organization_id" = "s"."organization_id" AND "e"."channel_id" IS NULL;
+  ```
+
+  On MySQL:
+
+  ```sql
+  UPDATE `search_index` AS `s` INNER JOIN `content_entries` AS `e` ON `e`.`id` = `s`.`entity_id` AND `e`.`type_key` = `s`.`entity_type` AND `e`.`organization_id` = `s`.`organization_id` SET `s`.`channel_id` = NULL WHERE `s`.`result_group` = 'content' AND `s`.`channel_id` IS NOT NULL AND `e`.`channel_id` IS NULL;
+  ```
+
 Deploy the live Worker before the first preview deploy, because the preview Worker binds its `Storage` room. Run
 `pnpm build` and `pnpm deploy:live` once, or start the Release workflow by hand. Until the live Worker exists, the
 preview workflow stops before its deploy with a message that says this.
 
 ## Send email
 
-`NotificationsModule` sends the mails of the site: an invitation, a password reset. The starter has no mail
-provider, so no mail goes out. Each mail goes to the log instead. Under `nuxt dev` the log line also holds the links
-of the mail, so you can open a reset link. A deployed Worker logs only the subject and the recipient.
+`NotificationsModule` sends the mails of the site: an invitation, a password reset. Each mail goes through the provider
+and the address that the platform organization sets on `/admin`, Settings › Organization › Mail and SMS. Until they are
+set, no mail goes out: each mail goes to the log instead. Under `nuxt dev` the log line also holds the links of the
+mail, so you can open a reset link. A deployed Worker logs only the subject and the recipient.
 
-To send real mail, add a provider. For example, Resend:
+This site keeps no secret store, so it sends through Cloudflare Email Service with the `send_email` binding
+`SEND_EMAIL` of `nuxt.config.ts`, which needs no credential:
 
-1. Run `pnpm add resend`.
-2. Add `server/mail.module.ts`:
+1. Put the domain that the mail goes from (such as `mail.acme.example`) on a zone of your Cloudflare account, and run
+   `pnpm exec wrangler email sending enable <domain>` once.
+2. On `/admin`, Settings › Organization › Mail and SMS, add the provider Cloudflare Email Service, then the domain.
+   Set our ownership record that the screen shows at the domain's DNS host, then choose Check now.
+3. Add an address at the domain, with the name that people see. The first address is the one that every mail goes
+   from.
+4. To put the bounces and complaints of Cloudflare Email Service on the suppression list, add an Email Service event
+   subscription in your Cloudflare account that sends its events to the queue `<site>-email-events` (created with the
+   other resources above). The live Worker reads the queue (`server/email-events.handler.ts`), and a hard bounce or a
+   complaint stops all mail to that address. Without the subscription, only Cloudflare's own suppression list stops a
+   send to such an address.
 
-   ```ts
-   import { EmailTransport } from "@heximon/notifications/email";
-   import { ResendTransport } from "@heximon/notifications/email/resend";
-   import { Module } from "@heximon/runtime";
-   import { SchemaObject } from "@heximon/schema";
-   import * as v from "valibot";
-
-   /** The key of the mail provider. Only the environment sets it: `INFERATIVE_MAIL_RESEND_API_KEY`. */
-   export class MailConfig extends SchemaObject({ resendApiKey: v.string() }) {}
-
-   /** Sends the mails of the site through Resend. */
-   export class MailModule extends Module({
-     config: { mail: MailConfig },
-     providers: [
-       {
-         provide: EmailTransport,
-         useFactory: (config: MailConfig): EmailTransport =>
-           new ResendTransport({ apiKey: config.resendApiKey })
-       }
-     ],
-     exports: [EmailTransport]
-   }) {}
-   ```
-
-3. Add `MailModule` to `imports` in `server/app.module.ts`.
-4. Set `INFERATIVE_MAIL_RESEND_API_KEY` in `.env` and in the secrets of each Worker (`wrangler secret bulk`).
-5. On Settings › Organization › Platform, under "Mail sender", save an address on a domain that Resend verified.
+A site that followed the older recipe of this section (a `server/mail.module.ts` with `ResendTransport` and
+`INFERATIVE_MAIL_RESEND_API_KEY`) deletes the module, its import in `server/app.module.ts` and the variable from `.env`
+and both Workers.
 
 ## Use MySQL
 
@@ -288,6 +317,6 @@ The workflow reads these repository secrets. A run with a missing secret fails a
 | `pnpm typecheck` | Type-checks the Vue files and the server. |
 | `pnpm heximon:check` | Compiles the modules and reports the wiring errors. |
 | `pnpm db:generate` | Writes a migration from `schema.ts`. |
-| `pnpm db:migrate` | Applies the migrations to `DATABASE_URL`. |
+| `pnpm db:migrate` | Applies the migrations to `DATABASE_URL` with `inferative database migrate`, each migration in a transaction of its own. |
 | `pnpm backup` | Backs up the database and the files, restores them, checks them and uploads an archive (`create`, `restore`, `verify`, `upload`, `keygen`). |
 | `pnpm test` | Runs the tests in `test/`. `test/site.test.ts` is an empty file to start from. |

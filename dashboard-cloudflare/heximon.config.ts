@@ -1,49 +1,77 @@
-import { defineHeximonConfig } from "@heximon/build";
+import { defineHeximonConfig, DiagnosticCode } from "@heximon/build";
 import type {} from "@heximon/cloudflare/compiler";
+import { QueuePlugin } from "@heximon/queue/compiler";
 import { WorkflowPlugin } from "@heximon/workflow/compiler";
 import { inferativeServerPlugins } from "@inferative/base/compiler";
 
 /**
- * The compiler config of the dashboard Worker. `inferativeServerPlugins` is the plugin set that every Inferative
- * package declares its concepts under; `logging` adds the wide event of each request, `saga` the timers (decisions,
- * runner leases, agent wakes, chat deliveries) and `websocket` the runner connection.
- * `WorkflowPlugin` runs the assistant's API runs and the replies of a linked chat as Cloudflare Workflows on the Worker
- * and in process under `nuxt dev`.
- * `schedule` puts the whole schedule tier on one platform cron trigger, the minute tick. The deploy platform comes from
- * the Nitro preset in `nuxt.config.ts`, not from this file. `cloudflare` holds the name and the bindings of the Worker;
- * the type import above gives the config type that key. `durable` names a Durable Object class that a deploy deletes.
+ * The compiler config of the dashboard Worker. The Nitro preset in `nuxt.config.ts` picks the platform; the type
+ * import above types the `cloudflare` key.
  */
 export default defineHeximonConfig({
   plugins: [
     ...inferativeServerPlugins({ logging: true, saga: true, websocket: true }),
+    new QueuePlugin(),
     new WorkflowPlugin()
   ],
-  schedule: { trigger: "single", tick: "* * * * *" },
+  // A route that the compiler cannot read fails the build: with no route rows, each request loads every package with
+  // routes.
+  strictDiagnostics: [DiagnosticCode.HttpRouteRowsFallback],
+  // The whole schedule runs on one tick, every minute. The alarm of a Durable Object of this Worker fires it (the room
+  // and the recovery middleware are in `server/app.module.ts`), so the Worker has no cron trigger: the tick runs in the
+  // room's warm isolate near the database, not in a new isolate every minute. At most 3 due jobs of one tick run at
+  // once, so the jobs of a tick do not take every connection of the database pool together. `nuxt dev` runs on Node,
+  // which keeps a timer for each job and reports `schedule/durable-tick-unsupported`.
+  schedule: { trigger: "durable-alarm", tick: "* * * * *", concurrency: 3 },
   runtimeConfig: { file: "./inferative.config.ts", env: { prefix: "INFERATIVE_" } },
+  // Before the rooms Worker, this Worker exported the three rooms of `cloudflare.durableObjects` that now run there. When
+  // the Worker still holds their namespaces, `pnpm deploy:live` deletes them and their data (short-lived cache hints,
+  // rate counters and stream closures) in an upload of its own; the rooms Worker starts its own, empty. Every other
+  // upload leaves these tombstones out. Delete the list when no install of this project is older than the rooms Worker.
+  durable: { deletedClasses: ["StorageRoomDO", "RateLimitRoomDO", "RealtimeStreamObjectDO"] },
   cloudflare: {
     name: "my-inferative-dashboard",
-    // Put before each queue name and workflow name of the Worker: the queue `saga-timer-queue` and the workflows
-    // `assistant-api-run` and `assistant-room-consultation` become `my-inferative-dashboard-saga-timer-queue` and so
-    // on. Cloudflare keeps one queue and one workflow of a name in each account, so several dashboards can share an
-    // account when each has its own prefix. Lowercase letters, digits and dashes, at most 32 characters.
+    // Put before each queue and workflow name: Cloudflare keeps one of each name per account. At most 32 characters.
     resourcePrefix: "my-inferative-dashboard-",
-    // The database. Replace `id` with the id of your Hyperdrive configuration (`wrangler hyperdrive create`). Keep
-    // caching off: with caching on, a person can save a change and then read old data.
+    // Keep the Hyperdrive cache off: with it, a person can save a change and then read old data.
     hyperdrive: [{ binding: "HYPERDRIVE", id: "00000000000000000000000000000000" }],
-    // The file store: the files, and the large model-history rows, tool results and session events of the assistant.
-    // Create the bucket with `wrangler r2 bucket create my-inferative-dashboard-files`. The binding name is fixed.
+    // The packages read the binding names below; keep them.
     r2Buckets: [{ binding: "FILES_BUCKET", bucketName: "my-inferative-dashboard-files" }],
-    // The applet supervisor runs in the applets Worker (`workers/applets/`). This Worker binds its class there by the
-    // name of that Worker. The packages read the binding name.
     durableObjects: [
       {
         binding: "APPLET_SUPERVISOR",
         className: "HostAppletObject",
         scriptName: "my-inferative-applets"
+      },
+      // The room of the realtime streams runs in the rooms Worker (`workers/rooms/`), so a cold room loads that small
+      // Worker and not this one. This Worker exports no live class for it; its modules call it by this binding. It keeps
+      // the stream handler of the room: it checks the host and sends each connect to the room.
+      {
+        binding: "REALTIME_STREAM_OBJECT",
+        className: "RealtimeStreamObjectDO",
+        scriptName: "my-inferative-rooms"
       }
     ],
-    // The reader of the text of attached PDF and Office files, an RPC entrypoint of the applets Worker: it reads each
-    // file in a Dynamic Worker there, so the parsers stay out of this Worker. The packages read the binding name.
+    // The entrypoints that the Workers Cache stands in front of: the reads of public file bytes and the public reads
+    // of sites. The fill entrypoint answers the edge Worker's misses.
+    entrypoints: [
+      { className: "FilesDeliveryEntrypoint", module: "./server/files-delivery.entrypoint" },
+      { className: "PublicReadEntrypoint", module: "./server/public-read.entrypoints" },
+      { className: "PublicReadFillEntrypoint", module: "./server/public-read.entrypoints" }
+    ],
+    // The public reads of sites and the public file bytes are answered before the app loads: a cache hit runs no app
+    // code. A miss of the stamp read goes to the stamp fill, which builds the small graph of the channels library's
+    // stamp read and not the app.
+    earlyRoutes: [
+      { pathPrefix: "/api/site/v1/", module: "./server/public-read.route" },
+      { pathPrefix: "/api/files/delivery/", module: "./server/public-read.route" },
+      {
+        pathPrefix: "/api/site/stamp-fill/",
+        graph: { module: "@inferative/channels/stamp-read", className: "ChannelStampReadModule" },
+        handler: { module: "@inferative/channels/stamp-read", className: "ChannelStampFill" }
+      }
+    ],
+    // Reads the text of attached PDF and Office files in the applets Worker, so the parsers stay out of this one.
     services: [
       {
         binding: "ATTACHMENT_TEXT",
@@ -51,8 +79,5 @@ export default defineHeximonConfig({
         entrypoint: "AttachmentTextEntrypoint"
       }
     ]
-  },
-  // The Durable Object that held the response cache before each isolate kept it in memory. A deploy deletes it and its
-  // data. Delete this entry when a deploy lists it under `removable_entries`.
-  durable: { deletedClasses: ["ResponseCacheRoomDO"] }
+  }
 });

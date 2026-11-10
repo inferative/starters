@@ -1,9 +1,8 @@
 import { describe, it } from "vitest";
 
 /**
- * The tests of this dashboard. `createTestApp` from `@heximon/testing` compiles `server/` and boots it in this
- * process, and `createTestClient` from `@heximon/http/testing` sends it requests. A boot needs a database that the
- * test may write to, set through `DATABASE_URL`.
+ * `createTestApp` (`@heximon/testing`) boots `server/` in this process, and `createTestClient` (`@heximon/http/testing`)
+ * sends it requests. A boot needs a database in `DATABASE_URL` that the test may write to.
  */
 describe("the dashboard", () => {
   it.todo("answers /api/ready with 200");

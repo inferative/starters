@@ -47,10 +47,10 @@ const sections = computed(() => body.data.value?.document["sections"]);
 
 // One owner stamps `Cache-Control`, `Cache-Tag` and `Vary` of the response, after the entry read settled. A page
 // that is unreadable is stored nowhere. The language may come from the visitor's language cookie, so the answer
-// varies on it.
+// varies on it. The page takes its language from its address, never from `Accept-Language`, so the answer does not
+// vary on that header, and the server keeps the page under its stamp.
 useSiteCache({
   profile: isEntryUnreadable.value ? SiteCacheProfile.Unavailable : page.cacheProfile.value,
-  varyOnLanguage: true,
   varyOnCookie: true,
   entries:
     page.entryType.value === undefined || page.entryId.value === ""
