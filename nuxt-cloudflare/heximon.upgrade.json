@@ -102,6 +102,12 @@
         "event": "identity.engagement.invited"
       },
       {
+        "event": "identity.engagement.memory-forgotten"
+      },
+      {
+        "event": "identity.engagement.memory-restored"
+      },
+      {
         "event": "identity.engagement.offered"
       },
       {

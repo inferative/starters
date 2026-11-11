@@ -26,6 +26,9 @@ the site SDK. `SETUP.md` holds the setup steps and the daily work, which the ski
 ```sh
 pnpm dev              # run the website at http://localhost:3000
 pnpm typecheck        # type-check the Vue files and the server
+pnpm fmt              # format the files with Vite+ (vp fmt)
+pnpm lint             # lint the files with Vite+ (vp lint)
+pnpm check            # format check, lint and type check; run pnpm fmt first
 pnpm build            # build the Node server into .output/
 pnpm check:manifest   # audit shared/site.ts (no network)
 pnpm sync:manifest    # publish shared/site.ts to the channel

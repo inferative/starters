@@ -15,7 +15,7 @@ write code. The Heximon DI rules differ from NestJS and Angular, and a wrong ver
 - Both database setups sit in `server/persistence/`, and `heximon.config.ts` pins `root: "AppModule"`. The unused setup compiles with no warning.
 - No decorators. Dependencies are constructor parameters. Never silence a type error with `as any`.
 - The browser draws the screens below `/admin`, and the Worker renders the site. The Worker is about 37 MiB of code; Cloudflare takes at most 64 MiB.
-- The shell of the screens below `/admin` is a static file of the build (`.output/public/admin/_shell.html`, with `_redirects` and `_headers`): a page document below `/admin` does not start the Worker. Do not add a file named `_redirects` or `_headers` to `public/`, and do not serve a route of your own below `/admin`.
+- The shell of the screens below `/admin` is a static file of the build (`.output/public/admin/_shell.html`, with `_redirects` and `_headers`): a page document below `/admin` does not start the Worker, and a file below `/admin` (`/admin/login/old.js`) reaches the Worker, which answers 404 unless a page route takes the name as its parameter. Do not add a file named `_redirects` or `_headers` to `public/`, and do not serve a route of your own below `/admin`.
 - The site serves one origin, so it has no CORS policy and no frame-source policy. The response cache is the one policy, held in the memory of each isolate (`IsolateResponseCacheModule`).
 - The Worker name and the bindings are in `cloudflare` of `heximon.config.ts`. Heximon copies each binding into the preview Worker, the Durable Object bindings of the modules too. Write a binding once.
 - `pnpm build` writes the live Worker. `pnpm build:preview` writes the preview Worker. `pnpm deploy:live` and `pnpm deploy:preview` deploy the last build and refuse a bundle of the other Worker (`deploy/assert-worker.mjs`).
@@ -30,6 +30,9 @@ write code. The Heximon DI rules differ from NestJS and Angular, and a wrong ver
 ```sh
 pnpm heximon:check   # compile the modules; run it after each change to a module
 pnpm typecheck       # type-check the Vue files and the server
+pnpm fmt             # format the files with Vite+ (vp fmt)
+pnpm lint            # lint the files with Vite+ (vp lint)
+pnpm check           # format check, lint, type check and heximon check; run pnpm fmt first
 pnpm test            # run the tests in test/ (test/site.test.ts is an empty file to start from)
 pnpm dev             # run the site at http://localhost:3000
 pnpm build           # build the live Worker

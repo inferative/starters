@@ -195,6 +195,12 @@
         "event": "identity.account.deleted"
       },
       {
+        "event": "identity.chart.actor-moved"
+      },
+      {
+        "event": "identity.chart.department-changed"
+      },
+      {
         "event": "identity.email.verification-requested"
       },
       {
@@ -210,7 +216,16 @@
         "event": "identity.engagement.guests-joined"
       },
       {
+        "event": "identity.engagement.guests-stopped"
+      },
+      {
         "event": "identity.engagement.invited"
+      },
+      {
+        "event": "identity.engagement.memory-forgotten"
+      },
+      {
+        "event": "identity.engagement.memory-restored"
       },
       {
         "event": "identity.engagement.offered"
@@ -363,6 +378,9 @@
         "event": "location-cache.purge-requested"
       },
       {
+        "event": "memory.engagement-lesson.kept"
+      },
+      {
         "event": "memory.transcript.session-pending"
       },
       {
@@ -403,6 +421,24 @@
       },
       {
         "event": "projects.review.decided"
+      },
+      {
+        "event": "projects.task.assigned"
+      },
+      {
+        "event": "projects.task.claimed"
+      },
+      {
+        "event": "projects.task.send-back-limit-reached"
+      },
+      {
+        "event": "projects.task.updated"
+      },
+      {
+        "event": "projects.work-copy.closed"
+      },
+      {
+        "event": "projects.work-copy.requested"
       },
       {
         "event": "publishing.archived"
@@ -491,6 +527,9 @@
       },
       {
         "slot": "memo-default"
+      },
+      {
+        "slot": "opinion-wait"
       },
       {
         "slot": "reversibility-end"

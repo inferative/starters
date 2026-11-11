@@ -108,3 +108,10 @@ jobs:
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      # It goes after every Worker: while the migrations ran, the Workers of the earlier release still served, and they
+      # did not record what this release added. Each statement is safe to run again.
+      - name: Repair the data that the earlier Workers wrote during the release
+        run: pnpm release:after
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

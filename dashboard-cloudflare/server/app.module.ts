@@ -34,6 +34,7 @@ import { AssistantModule } from "@inferative/assistant/server";
 import { AssistantCapabilitiesModule } from "@inferative/assistant/capabilities";
 import {
   CloudflareLocationCacheInfrastructure,
+  CloudflarePlatformSettingsInfrastructure,
   CloudflareSagaTimerInfrastructure
 } from "@inferative/base/infrastructure/cloudflare";
 import {
@@ -140,6 +141,7 @@ import { PagesModule } from "@inferative/pages/server";
 import { PagesCapabilitiesModule } from "@inferative/pages/capabilities";
 import { ProjectsModule } from "@inferative/projects/server";
 import { ProjectsCapabilitiesModule } from "@inferative/projects/capabilities";
+import { CloudflareSourceStoreInfrastructure } from "@inferative/projects/infrastructure/cloudflare";
 import { PublishingModule } from "@inferative/publishing/server";
 import { PublishingCapabilitiesModule } from "@inferative/publishing/capabilities";
 import { CloudflareRealtimeInfrastructure } from "@inferative/realtime/infrastructure/cloudflare";
@@ -259,6 +261,9 @@ export class AppModule extends Module({
     // The public reads stay in each location of the platform, purged by tag; the platform settings switch it on.
     LocationCacheModule,
     CloudflareLocationCacheInfrastructure,
+    // The platform settings from the KV Instant namespace `PLATFORM_SETTINGS` when `heximon.config.ts` binds one, so a
+    // cold isolate reads them with no database statement; with no binding, each isolate holds them over the database.
+    CloudflarePlatformSettingsInfrastructure,
     CloudflareFilesStoreInfrastructure,
     // The S3 path to the R2 bucket for `nuxt dev`. `dev: true` keeps it, and the AWS SDK, out of a production build.
     { module: FilesR2DevelopmentStore, dev: true },
@@ -267,6 +272,8 @@ export class AppModule extends Module({
     CloudflareSagaTimerInfrastructure,
     CloudflareAssistantInfrastructure,
     CloudflareAttachmentTextInfrastructure,
+    // The Git store of hosted repositories: Artifacts, when the Worker binds a namespace as `SOURCE_REPOSITORIES`; else none.
+    CloudflareSourceStoreInfrastructure,
     CloudflareRealtimeInfrastructure,
     IdentityKeysModule,
     IdentityModule,

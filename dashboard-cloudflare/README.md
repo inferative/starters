@@ -25,9 +25,10 @@ steps of `SETUP.md` and stops at each browser step.
 | `workers/applets/` | The applets Worker: the applet supervisor and its build. See "Applets" and "The three Workers". |
 | `workers/rooms/` | The rooms Worker: the room of the realtime streams (`src/realtime-room.module.ts`). See "The three Workers". |
 | `drizzle.config.ts` | The config of `drizzle-kit`. |
+| `vite.config.ts` | The rules of `pnpm fmt` and `pnpm lint` (Vite+). Nuxt and Vitest do not read it. |
 | `inferative.config.ts` | The values that this dashboard changes from the package defaults. `assistant.playbooks` adds the notes of your own pages to the assistant. |
 | `nuxt.config.ts` | The Nuxt layers. `nitro.minify` keeps the Worker below the Cloudflare limits of 64 MiB of code and 1 s of startup, and the ASCII output of `nitro.rolldownConfig` keeps the heap of an isolate below its limit of 128 MB. |
-| `heximon.config.ts` | The compiler plugins, the minute tick of the schedule (the alarm of a Durable Object fires it, "The clock of the scheduled jobs"), and the name and the bindings of the dashboard Worker (`cloudflare`): the Hyperdrive id, the R2 bucket, the applet supervisor in the applets Worker, the reader of the text of attached files there (`ATTACHMENT_TEXT`), and the cached entrypoint of public files (`FilesDeliveryEntrypoint`, "File cache"). |
+| `heximon.config.ts` | The compiler plugins, the minute tick of the schedule (the alarm of a Durable Object fires it, "The clock of the scheduled jobs"), and the name and the bindings of the dashboard Worker (`cloudflare`): the Hyperdrive id, the R2 bucket, the Artifacts namespace of the hosted repositories ("Hosted repositories"), the applet supervisor in the applets Worker, the reader of the text of attached files there (`ATTACHMENT_TEXT`), and the cached entrypoint of public files (`FilesDeliveryEntrypoint`, "File cache"). |
 | `heximon.upgrade.json` | The record of the durable surface: the events, the timers and the workflow steps that stored work names. It is generated: run `pnpm heximon:check --update` and commit the result. |
 | `app/` | The app config. The navigation is the default of the dashboard layer; `app/app.config.ts` says how to change it. |
 | `.github/workflows/release.yml` | A published release, or a manual run, migrates the database and deploys the three Workers. |
@@ -207,11 +208,11 @@ agent wake, a chat delivery) through the queue `my-inferative-dashboard-saga-tim
 reads the queue `my-inferative-dashboard-email-events`, which Cloudflare Email Service writes its delivery events to
 (`server/email-events.handler.ts`): see "Send email".
 
-Run the dashboard Worker in the region of the database. Phase 5 of `SETUP.md` writes the placement and the location
-hint below from the database region (the setup skill maps a region in `references/setup-cloudflare.md`). Without a
-placement, the Worker runs in the data centre of
-each visitor, and every statement crosses to the database's region: on a database in another country that is about
-50 ms for each round of reads. Put the region of the database into the `nitro.cloudflare.wrangler` block of `nuxt.config.ts`:
+Run the dashboard Worker in the region of the database. Phase 5 of `SETUP.md` writes the placement below and the
+location hint of the clock ("The clock of the scheduled jobs") from the database region (the setup skill maps a region
+in `references/setup-cloudflare.md`). Without a placement, the Worker runs in the data centre of each visitor, and
+every statement crosses to the database's region: on a database in another country that is about 50 ms for each round
+of reads. Put the region of the database into the `nitro.cloudflare.wrangler` block of `nuxt.config.ts`:
 
 ```ts
 cloudflare: {
@@ -237,6 +238,22 @@ the bucket of the dashboard only. The dashboard shows the key id and the secret 
 overview page. Put the four values in `.env` (`INFERATIVE_FILES_R2_ACCOUNT_ID`, `INFERATIVE_FILES_R2_BUCKET`,
 `INFERATIVE_FILES_R2_ACCESS_KEY_ID`, `INFERATIVE_FILES_R2_SECRET_ACCESS_KEY`). Without them, a local run keeps files in
 memory and prints one warning. The built Worker uses the binding and carries no AWS code.
+
+### Hosted repositories
+
+`cloudflare.artifacts` of `heximon.config.ts` binds the Cloudflare Artifacts namespace `my-inferative-dashboard-sources`
+as `SOURCE_REPOSITORIES`: the Git store of the hosted repositories of projects, and later of sites and apps. Without the
+binding a project keeps no hosted repository, and `nuxt dev` runs without it. Artifacts has no local simulator: a `wrangler dev` of the built Worker reaches the remote
+namespace and needs a Cloudflare login, so remove `artifacts` from a copy of `.output/server/wrangler.json` and run that
+copy for a local run with no account. Create the namespace once, before the first repository, with the jurisdiction `eu`. A
+jurisdiction cannot change later, and Artifacts creates a missing namespace by itself on the first repository, where
+the jurisdiction is not yours to choose. The API token must be allowed to write Artifacts:
+
+```sh
+curl -X POST "https://api.cloudflare.com/client/v4/accounts/<account id>/artifacts/namespaces" \
+  -H "Authorization: Bearer <api token>" -H "Content-Type: application/json" \
+  -d '{"namespace": "my-inferative-dashboard-sources", "jurisdiction": "eu"}'
+```
 
 ### Public read cache
 
@@ -284,11 +301,12 @@ The billed requests of each path are in [The Workers](https://inferative.dev/doc
 
 | Event | What runs |
 | :-- | :-- |
-| A published release, or a manual run | `pnpm db:migrate`, `pnpm release:data`, `pnpm build`, `pnpm build:applets`, `pnpm build:rooms`, `pnpm deploy:applets`, `pnpm deploy:rooms`, `pnpm deploy:live`, `pnpm deploy:rooms:after`, `pnpm deploy:edge`, then `pnpm deploy:bind`. |
+| A published release, or a manual run | `pnpm db:migrate`, `pnpm release:data`, `pnpm build`, `pnpm build:applets`, `pnpm build:rooms`, `pnpm deploy:applets`, `pnpm deploy:rooms`, `pnpm deploy:live`, `pnpm deploy:rooms:after`, `pnpm deploy:edge`, `pnpm deploy:bind`, then `pnpm release:after`. |
 
 The workflow reads these secrets of the organization: `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` and
 `READ_PACKAGES_TOKEN`. It reads `DATABASE_URL` from the secrets of the repository. A deploy by hand runs the same
-eleven commands, in the same order. `pnpm deploy:rooms` waits while the rooms Worker still holds a room that the deployed
+twelve commands, in the same order. `pnpm release:after` repairs the data that the Workers of the earlier release wrote
+while the new migrations already applied. `pnpm deploy:rooms` waits while the rooms Worker still holds a room that the deployed
 dashboard Worker binds; `pnpm deploy:rooms:after` then deploys it after the dashboard Worker, so its upload can delete
 that room. Only one of the two uploads.
 
@@ -536,6 +554,29 @@ hand.
   UPDATE "notification_templates" SET "layout_scope" = CASE WHEN "layout_organization_id" = (SELECT coalesce((SELECT "organization_id" FROM "platform_organizations" LIMIT 1), (SELECT "id" FROM "organizations" ORDER BY "created_at", "id" LIMIT 1))) AND NOT ("organization_id" = (SELECT coalesce((SELECT "organization_id" FROM "platform_organizations" LIMIT 1), (SELECT "id" FROM "organizations" ORDER BY "created_at", "id" LIMIT 1))) AND "kind" LIKE 'custom.%') THEN 'platform' ELSE 'organization' END WHERE "layout_organization_id" IS NOT NULL AND "layout_scope" IS NULL;
   ```
 
+- **An install made before the split permission codes.** No schema changes. The deploy tool runs the statements
+  below once on each install (`custom_role_split_codes`). `taxonomy:manage` no longer files records under categories,
+  and `forms:read` no longer reads form submissions. A custom role that holds the old code gets the new code of the
+  part it lost (`taxonomy:assign`, `forms.submissions:read`), and its organization's members read their permissions
+  again. A second run writes nothing.
+
+  ```sql
+  WITH "changed" AS (UPDATE "organization_custom_roles" SET "permission_codes" = "permission_codes" || '["taxonomy:assign"]'::jsonb, "version" = "version" + 1 WHERE "permission_codes" @> '["taxonomy:manage"]'::jsonb AND NOT "permission_codes" @> '["taxonomy:assign"]'::jsonb RETURNING "organization_id") UPDATE "organizations" SET "access_version" = "access_version" + 1 WHERE "id" IN (SELECT "organization_id" FROM "changed");--> statement-breakpoint
+  WITH "changed" AS (UPDATE "organization_custom_roles" SET "permission_codes" = "permission_codes" || '["forms.submissions:read"]'::jsonb, "version" = "version" + 1 WHERE "permission_codes" @> '["forms:read"]'::jsonb AND NOT "permission_codes" @> '["forms.submissions:read"]'::jsonb RETURNING "organization_id") UPDATE "organizations" SET "access_version" = "access_version" + 1 WHERE "id" IN (SELECT "organization_id" FROM "changed");
+  ```
+
+- **An install made before the engagement keys in the access state.** The release adds a column to
+  `organization_access_states`. `pnpm db:generate` writes the migration that adds it. Run the statement below once
+  after the migration. The Workers of the earlier release do not record an engagement that they accept, so
+  `pnpm release:after` runs it again after the new Workers serve, on every release. The deploy tool runs it once on
+  each install (`engagement_audience_keys`) and again after each rollout. Each client of an offered, active or paused engagement then says that the guests of its
+  engagements may hold an engagement key; until it runs, a guest holds none and reads none of the engagement memory. A
+  second run changes nothing.
+
+  ```sql
+  INSERT INTO "organization_access_states" ("organization_id", "generation", "purge_generation", "holds_engagement_keys") SELECT DISTINCT "client_organization_id", 0, 0, true FROM "organization_engagements" WHERE "state" IN ('offered', 'active', 'paused') ON CONFLICT ("organization_id") DO UPDATE SET "holds_engagement_keys" = true;
+  ```
+
 - **The read epochs of each deploy.** The epoch of a public read address names the build that answers it. `pnpm
   build` writes the output digest of the build to `.output/inferative-read-output.json` (`{ "digest": "…" }`). The deploy
   tool runs two statements on each deploy: the first after `pnpm build` and before `pnpm deploy:live`, the second after
@@ -699,8 +740,15 @@ is the clock: its alarm fires one tick each minute, and the tick runs every job 
 (`schedule: { trigger: "durable-alarm" }` in `heximon.config.ts`). The room stays in the dashboard Worker, because the
 jobs need the modules of the dashboard. Its isolate stays in memory between two alarms, so a tick boots the app once
 and then runs only its jobs. A cron trigger started a new isolate somewhere in the world for almost each tick, far from
-the database. The room runs where Cloudflare creates it: near the placed Worker that first calls it, so near the
-database. It stores only the time of its last tick.
+the database. The room runs where Cloudflare creates it, and it never moves after that. `locationHint` of the
+`schedule` block asks Cloudflare to create it in the region of the database (`weur`: western Europe; phase 5 of
+`SETUP.md` writes it from the database region). Without the hint, Cloudflare creates the room near the first isolate
+that calls it, and that isolate can be anywhere in the world. A cron invocation never creates the room. It stores only
+the time of its last tick.
+
+A room that already runs in another region stays there; a new hint does not move it. To move it, delete the room in
+one deploy and let the next deploy create it again: "Place the tick room" of Heximon's scheduled jobs guide has the
+steps. The old room must stop with the delete, or each job runs twice.
 
 Each start of an isolate of the Worker arms the alarm when it is not set. `ScheduleRecoveryMiddleware` (in
 `http.middlewares`) arms it again when a start failed to arm it. After an arm, an isolate calls the room again only
@@ -718,10 +766,12 @@ each page address to it, so a page document does not start the Worker. The shell
 (`GET /api/_boot`) before the code of the app loads; the Worker answers it with the session, the capabilities, the
 locale and the build. `.output/public/_headers` gives the shell the security headers of the Worker. The Worker's own
 paths (`/api` and `/.well-known`, from the route census of the build) reach the Worker first
-(`assets.run_worker_first` in `.output/server/wrangler.json`). Every other address that is no page address and no file
-of the build reaches the Worker after the assets: a missing file (an old `/_nuxt/` chunk, a scanner's `/wp-login.php`)
-answers 404 with `no-store`, and an address that no page holds gets the Worker's page shell, whose not-found page
-draws it.
+(`assets.run_worker_first` in `.output/server/wrangler.json`), and so does a file below a page address
+(`/login/old.js`; the types `.css`, `.js`, `.json`, `.map` and `.php`), which the Worker answers 404 with `no-store`,
+unless a page route takes the name as its parameter (a content type key `acme.json` at `/content/acme.json`). Every
+other address that is no page address and no file of the build reaches the Worker after the assets: a missing file (an
+old `/_nuxt/` chunk, a scanner's `/wp-login.php`) answers 404 with `no-store`, and an address that no page holds gets
+the Worker's page shell, whose not-found page draws it.
 
 `pnpm build` builds the dashboard Worker into `.output/`, `pnpm build:applets` builds the applets Worker into
 `workers/applets/dist/`, and `pnpm build:rooms` builds the rooms Worker into `workers/rooms/dist/`. Deploy the applets
@@ -827,6 +877,9 @@ The workflow reads these repository secrets. A run with a missing secret fails a
 | `pnpm deploy:bind` | After the first `pnpm deploy:edge`: deploys the dashboard Worker again with `PUBLIC_READ_PURGE`. Otherwise it does nothing. |
 | `pnpm deploy:edge` | Deploys the edge Worker of `workers/edge/`, which fronts the host. Deploy it after the dashboard Worker. |
 | `pnpm typecheck` | Type-checks the Vue files and the server. |
+| `pnpm fmt` | Formats the files with Vite+ (`vp fmt`). |
+| `pnpm lint` | Lints the files with Vite+ (`vp lint`). |
+| `pnpm check` | Runs the format check, the lint, `nuxt typecheck` and `heximon check`. Run `pnpm fmt` first. |
 | `pnpm heximon:check` | Compiles the modules and reports the wiring errors. |
 | `pnpm db:generate` | Writes a migration from `schema.ts`. |
 | `pnpm db:migrate` | Applies the migrations to `DATABASE_URL` with `inferative database migrate`, each migration in a transaction of its own. |
