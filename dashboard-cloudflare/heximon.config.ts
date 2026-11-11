@@ -21,8 +21,9 @@ export default defineHeximonConfig({
   // and the recovery middleware are in `server/app.module.ts`), so the Worker has no cron trigger: the tick runs in the
   // room's warm isolate near the database, not in a new isolate every minute. At most 3 due jobs of one tick run at
   // once, so the jobs of a tick do not take every connection of the database pool together. `nuxt dev` runs on Node,
-  // which keeps a timer for each job and reports `schedule/durable-tick-unsupported`.
-  schedule: { trigger: "durable-alarm", tick: "* * * * *", concurrency: 3 },
+  // which keeps a timer for each job and reports `schedule/durable-tick-unsupported`. `locationHint` asks Cloudflare to
+  // create the room in the region of the database (`weur`: western Europe); a room never moves after it is created.
+  schedule: { trigger: "durable-alarm", tick: "* * * * *", concurrency: 3, locationHint: "weur" },
   runtimeConfig: { file: "./inferative.config.ts", env: { prefix: "INFERATIVE_" } },
   // Before the rooms Worker, this Worker exported the three rooms of `cloudflare.durableObjects` that now run there. When
   // the Worker still holds their namespaces, `pnpm deploy:live` deletes them and their data (short-lived cache hints,
@@ -37,6 +38,9 @@ export default defineHeximonConfig({
     hyperdrive: [{ binding: "HYPERDRIVE", id: "00000000000000000000000000000000" }],
     // The packages read the binding names below; keep them.
     r2Buckets: [{ binding: "FILES_BUCKET", bucketName: "my-inferative-dashboard-files" }],
+    // The Artifacts namespace of the hosted repositories (the Git sources of sites and apps). Create it once with the
+    // jurisdiction `eu` (README, "Hosted repositories"): a jurisdiction cannot change after the namespace exists.
+    artifacts: [{ binding: "SOURCE_REPOSITORIES", namespace: "my-inferative-dashboard-sources" }],
     durableObjects: [
       {
         binding: "APPLET_SUPERVISOR",

@@ -195,6 +195,9 @@
         "event": "identity.account.deleted"
       },
       {
+        "event": "identity.chart.actor-moved"
+      },
+      {
         "event": "identity.email.verification-requested"
       },
       {

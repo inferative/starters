@@ -30,6 +30,7 @@ The keys of this starter, beside the shared keys:
   "postgresProvider": "<provider>",
   "region": "<region>",
   "placementRegion": "aws:eu-central-1",
+  "locationHint": "weur",
   "domain": "workers.dev",
   "singleOrganization": true,
   "assistantConnection": "none",
@@ -43,7 +44,7 @@ The keys of this starter, beside the shared keys:
 | # | Phase id | Done when | Details |
 | :-- | :-- | :-- | :-- |
 | 4 | `choices` | You hold every answer of the choices table | "Phase 4: choices" |
-| 5 | `starter` | `pnpm heximon:check` exits 0, no `my-inferative-dashboard` is left in `nuxt.config.ts`, `heximon.config.ts`, `inferative.config.ts` and `package.json`, no `my-inferative-applets` is left in `heximon.config.ts` and `workers/applets/heximon.config.ts`, no `my-inferative-rooms` is left in `workers/rooms/heximon.config.ts`, and the placement of the state file is in `nuxt.config.ts` | "Phase 5: the config" |
+| 5 | `starter` | `pnpm heximon:check` exits 0, no `my-inferative-dashboard` is left in `nuxt.config.ts`, `heximon.config.ts`, `inferative.config.ts` and `package.json`, no `my-inferative-applets` is left in `heximon.config.ts` and `workers/applets/heximon.config.ts`, no `my-inferative-rooms` is left in `workers/rooms/heximon.config.ts`, and the placement and the location hint of the state file are in `nuxt.config.ts` and `heximon.config.ts` | "Phase 5: the config" |
 | 6 | `database` | `pnpm db:migrate` exits 0 against the `DATABASE_URL` of `.env` | "Phase 6: the database" |
 | 7 | `cloudflare` | The Hyperdrive id is in `heximon.config.ts` and `workers/rooms/heximon.config.ts`, caching is off, and the bucket and the queue `<name>-saga-timer-queue` exist | "Phase 7: Cloudflare" |
 | 8 | `secrets` | The secrets check shows each name as `set` in `.env` and in `.env.worker`, and the root as `same` | "Phase 8: secrets" |
@@ -85,8 +86,9 @@ default: the person chooses. Write the answers to the state file.
 | Model of the assistant | none: AI is off until an organization has a model connection | Optional. A model connection of the kind `anthropic`, `openai`, `vercel-ai-gateway`, `cloudflare-ai-gateway` or `openrouter`. The person needs an API key of that provider and a model id. It can wait until later ("Turn on the assistant" below). |
 | Capabilities | all | The modules of `server/app.module.ts` that the dashboard keeps. |
 
-Then map the database region to the placement region: "Placement" of `references/setup-cloudflare.md`. Write it to
-`placementRegion`. When the region has no row of its own, tell the person which row you used.
+Then map the database region to the placement region and the location hint: "Placement and the location hint" of
+`references/setup-cloudflare.md`. Write them to `placementRegion` and `locationHint`. When the region has no row of
+its own, tell the person which row you used.
 
 ## Phase 5: the config
 
@@ -102,6 +104,7 @@ comments:
 | `heximon.config.ts` | `cloudflare.name` | `<name>` |
 | `heximon.config.ts` | `cloudflare.resourcePrefix` | `<name>-` |
 | `heximon.config.ts` | `bucketName` under `cloudflare.r2Buckets` | `<name>-files` |
+| `heximon.config.ts` | `namespace` under `cloudflare.artifacts` | `<name>-sources` |
 | `heximon.config.ts` | `scriptName` of `APPLET_SUPERVISOR` under `cloudflare.durableObjects` | `<name>-applets` |
 | `workers/applets/heximon.config.ts` | `cloudflare.name` | `<name>-applets` |
 | `heximon.config.ts` | `scriptName` of `REALTIME_STREAM_OBJECT` under `cloudflare.durableObjects` | `<name>-rooms` |
@@ -145,6 +148,10 @@ again, so the placement lives here, never in the Cloudflare dashboard. The apple
 no database. The rooms Worker gets no placement either: a Durable Object runs where Cloudflare creates it, not with the
 placement of its Worker.
 
+**The location hint of the clock.** In `heximon.config.ts`, set `locationHint` of the `schedule` block to
+`locationHint` of the state file, in place of `"weur"`. Cloudflare creates the room of the scheduled jobs near that
+hint, and the room never moves after the first deploy. Keep `"weur"` when the state file says `weur`.
+
 **`inferative.config.ts`.**
 
 | Key | New value |
@@ -170,6 +177,7 @@ Check:
 - `grep -c 'My dashboard' inferative.config.ts` prints `0`.
 - `grep -c 'region: "<placement region>"' nuxt.config.ts` prints `1`, and `grep -c placement workers/applets/heximon.config.ts`
   prints `0`.
+- `grep -c 'locationHint: "<location hint>"' heximon.config.ts` prints `1`.
 
 ## Phase 6: the database
 

@@ -27,7 +27,7 @@ steps of `SETUP.md` and stops at each browser step.
 | `drizzle.config.ts` | The config of `drizzle-kit`. |
 | `inferative.config.ts` | The values that this dashboard changes from the package defaults. `assistant.playbooks` adds the notes of your own pages to the assistant. |
 | `nuxt.config.ts` | The Nuxt layers. `nitro.minify` keeps the Worker below the Cloudflare limits of 64 MiB of code and 1 s of startup, and the ASCII output of `nitro.rolldownConfig` keeps the heap of an isolate below its limit of 128 MB. |
-| `heximon.config.ts` | The compiler plugins, the minute tick of the schedule (the alarm of a Durable Object fires it, "The clock of the scheduled jobs"), and the name and the bindings of the dashboard Worker (`cloudflare`): the Hyperdrive id, the R2 bucket, the applet supervisor in the applets Worker, the reader of the text of attached files there (`ATTACHMENT_TEXT`), and the cached entrypoint of public files (`FilesDeliveryEntrypoint`, "File cache"). |
+| `heximon.config.ts` | The compiler plugins, the minute tick of the schedule (the alarm of a Durable Object fires it, "The clock of the scheduled jobs"), and the name and the bindings of the dashboard Worker (`cloudflare`): the Hyperdrive id, the R2 bucket, the Artifacts namespace of the hosted repositories ("Hosted repositories"), the applet supervisor in the applets Worker, the reader of the text of attached files there (`ATTACHMENT_TEXT`), and the cached entrypoint of public files (`FilesDeliveryEntrypoint`, "File cache"). |
 | `heximon.upgrade.json` | The record of the durable surface: the events, the timers and the workflow steps that stored work names. It is generated: run `pnpm heximon:check --update` and commit the result. |
 | `app/` | The app config. The navigation is the default of the dashboard layer; `app/app.config.ts` says how to change it. |
 | `.github/workflows/release.yml` | A published release, or a manual run, migrates the database and deploys the three Workers. |
@@ -207,11 +207,11 @@ agent wake, a chat delivery) through the queue `my-inferative-dashboard-saga-tim
 reads the queue `my-inferative-dashboard-email-events`, which Cloudflare Email Service writes its delivery events to
 (`server/email-events.handler.ts`): see "Send email".
 
-Run the dashboard Worker in the region of the database. Phase 5 of `SETUP.md` writes the placement and the location
-hint below from the database region (the setup skill maps a region in `references/setup-cloudflare.md`). Without a
-placement, the Worker runs in the data centre of
-each visitor, and every statement crosses to the database's region: on a database in another country that is about
-50 ms for each round of reads. Put the region of the database into the `nitro.cloudflare.wrangler` block of `nuxt.config.ts`:
+Run the dashboard Worker in the region of the database. Phase 5 of `SETUP.md` writes the placement below and the
+location hint of the clock ("The clock of the scheduled jobs") from the database region (the setup skill maps a region
+in `references/setup-cloudflare.md`). Without a placement, the Worker runs in the data centre of each visitor, and
+every statement crosses to the database's region: on a database in another country that is about 50 ms for each round
+of reads. Put the region of the database into the `nitro.cloudflare.wrangler` block of `nuxt.config.ts`:
 
 ```ts
 cloudflare: {
@@ -237,6 +237,22 @@ the bucket of the dashboard only. The dashboard shows the key id and the secret 
 overview page. Put the four values in `.env` (`INFERATIVE_FILES_R2_ACCOUNT_ID`, `INFERATIVE_FILES_R2_BUCKET`,
 `INFERATIVE_FILES_R2_ACCESS_KEY_ID`, `INFERATIVE_FILES_R2_SECRET_ACCESS_KEY`). Without them, a local run keeps files in
 memory and prints one warning. The built Worker uses the binding and carries no AWS code.
+
+### Hosted repositories
+
+`cloudflare.artifacts` of `heximon.config.ts` binds the Cloudflare Artifacts namespace `my-inferative-dashboard-sources`
+as `SOURCE_REPOSITORIES`: the Git sources of the hosted sites and apps. No code of this release reads the binding yet,
+and `nuxt dev` runs without it. Artifacts has no local simulator: a `wrangler dev` of the built Worker reaches the remote
+namespace and needs a Cloudflare login, so remove `artifacts` from a copy of `.output/server/wrangler.json` and run that
+copy for a local run with no account. Create the namespace once, before the first repository, with the jurisdiction `eu`. A
+jurisdiction cannot change later, and Artifacts creates a missing namespace by itself on the first repository, where
+the jurisdiction is not yours to choose. The API token must be allowed to write Artifacts:
+
+```sh
+curl -X POST "https://api.cloudflare.com/client/v4/accounts/<account id>/artifacts/namespaces" \
+  -H "Authorization: Bearer <api token>" -H "Content-Type: application/json" \
+  -d '{"namespace": "my-inferative-dashboard-sources", "jurisdiction": "eu"}'
+```
 
 ### Public read cache
 
@@ -699,8 +715,15 @@ is the clock: its alarm fires one tick each minute, and the tick runs every job 
 (`schedule: { trigger: "durable-alarm" }` in `heximon.config.ts`). The room stays in the dashboard Worker, because the
 jobs need the modules of the dashboard. Its isolate stays in memory between two alarms, so a tick boots the app once
 and then runs only its jobs. A cron trigger started a new isolate somewhere in the world for almost each tick, far from
-the database. The room runs where Cloudflare creates it: near the placed Worker that first calls it, so near the
-database. It stores only the time of its last tick.
+the database. The room runs where Cloudflare creates it, and it never moves after that. `locationHint` of the
+`schedule` block asks Cloudflare to create it in the region of the database (`weur`: western Europe; phase 5 of
+`SETUP.md` writes it from the database region). Without the hint, Cloudflare creates the room near the first isolate
+that calls it, and that isolate can be anywhere in the world. A cron invocation never creates the room. It stores only
+the time of its last tick.
+
+A room that already runs in another region stays there; a new hint does not move it. To move it, delete the room in
+one deploy and let the next deploy create it again: "Place the tick room" of Heximon's scheduled jobs guide has the
+steps. The old room must stop with the delete, or each job runs twice.
 
 Each start of an isolate of the Worker arms the alarm when it is not set. `ScheduleRecoveryMiddleware` (in
 `http.middlewares`) arms it again when a start failed to arm it. After an arm, an isolate calls the room again only

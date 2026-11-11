@@ -67,7 +67,7 @@ default: the person chooses. Write the answers to the state file.
 | GitHub owner | none | The person's own account or one of their organizations, from the list of the `gh` login. It goes into `githubOwner`. |
 | Capabilities | all | The modules of `server/app.module.ts` that the site keeps. |
 
-Then map the database region to the placement region: "Placement" of `references/setup-cloudflare.md`. Write it to
+Then map the database region to the placement region: "Placement and the location hint" of `references/setup-cloudflare.md`. Write it to
 `placementRegion`. When the region has no row of its own, tell the person which row you used.
 
 ## Phase 5: the config
