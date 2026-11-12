@@ -12,6 +12,7 @@ the content and the editors live in the dashboard of the deployment.
 | `app/pages/[...slug].vue` | Every page address, the root included: the page tree names the page, and the file draws its sections, sets the status, the cache headers and the head. |
 | `app/components/sections/` | The plain components of the sections, with no UI library. Change them to give the site its own look. |
 | `server/api/latest-posts.get.ts` | One route of the website's own server: the five newest posts as JSON. |
+| `vite.config.ts` | The rules of `pnpm fmt` and `pnpm lint` (Vite+). Nuxt does not read it. |
 
 ## Set up
 
@@ -134,6 +135,9 @@ Give the sync key to the deploy step only, as a secret, and run `pnpm sync:manif
 ```sh
 pnpm dev              # run the website at http://localhost:3000
 pnpm typecheck        # type-check the Vue files and the server
+pnpm fmt              # format the files with Vite+ (vp fmt)
+pnpm lint             # lint the files with Vite+ (vp lint)
+pnpm check            # format check, lint and type check; run pnpm fmt first
 pnpm build            # build the Node server into .output/
 pnpm preview          # start the built server
 pnpm check:manifest   # audit shared/site.ts and measure its manifest (no network)

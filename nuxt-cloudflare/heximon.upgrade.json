@@ -102,6 +102,12 @@
         "event": "identity.engagement.invited"
       },
       {
+        "event": "identity.engagement.memory-forgotten"
+      },
+      {
+        "event": "identity.engagement.memory-restored"
+      },
+      {
         "event": "identity.engagement.offered"
       },
       {
@@ -226,6 +232,12 @@
       },
       {
         "event": "identity.platform.tier_preview_read"
+      },
+      {
+        "event": "identity.platform.tier_request_declined"
+      },
+      {
+        "event": "identity.platform.tier_requests_listed"
       },
       {
         "event": "identity.recovery-code.regenerated"

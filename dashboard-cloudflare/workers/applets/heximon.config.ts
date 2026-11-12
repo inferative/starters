@@ -4,8 +4,8 @@ import type {} from "@heximon/cloudflare/compiler";
 import { AppletForgeKitConfig } from "@inferative/applets/forge-kit";
 
 /**
- * The compiler config of the applets Worker: the applet supervisor and the reader of attached files. It serves no
- * route and reads no database. `forge.kit` bakes the packages that an applet may import.
+ * The compiler config of the applets Worker: the applet supervisor, the reader of attached files and the Git service of
+ * hosted repositories. It serves no route, reads no database and holds no secret. `forge.kit` bakes the packages that an applet may import.
  */
 export default defineHeximonConfig({
   platform: new CloudflareWorkersStrategy({
@@ -25,7 +25,8 @@ export default defineHeximonConfig({
       }
     ],
     entrypoints: [
-      { className: "AttachmentTextEntrypoint", module: "./src/attachment-text.entrypoint.ts" }
+      { className: "AttachmentTextEntrypoint", module: "./src/attachment-text.entrypoint.ts" },
+      { className: "HostedGitEntrypoint", module: "./src/hosted-git.entrypoint.ts" }
     ],
     workerLoaders: [{ binding: "APPLET_LOADER" }],
     forge: { kit: AppletForgeKitConfig.forHost("../..") }

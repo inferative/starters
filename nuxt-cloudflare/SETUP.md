@@ -67,7 +67,7 @@ default: the person chooses. Write the answers to the state file.
 | GitHub owner | none | The person's own account or one of their organizations, from the list of the `gh` login. It goes into `githubOwner`. |
 | Capabilities | all | The modules of `server/app.module.ts` that the site keeps. |
 
-Then map the database region to the placement region: "Placement" of `references/setup-cloudflare.md`. Write it to
+Then map the database region to the placement region: "Placement and the location hint" of `references/setup-cloudflare.md`. Write it to
 `placementRegion`. When the region has no row of its own, tell the person which row you used.
 
 ## Phase 5: the config
@@ -439,7 +439,9 @@ The rules about secrets of `references/setup.md` apply here too: never show a va
 
 ### Change code and deploy
 
-1. Edit. After a change to a module run `pnpm heximon:check`. Before a push run `pnpm typecheck` and `pnpm test`.
+1. Edit. After a change to a module run `pnpm heximon:check`. Before a push run `pnpm fmt` to format the files, then
+   `pnpm check` (the format check, the lint, `pnpm typecheck` and `pnpm heximon:check`) and `pnpm test`. `pnpm lint`
+   runs the lint alone.
 2. A push to `main` runs `.github/workflows/preview.yml`: the migrations, the build, then the deploy of
    `<name>-preview`.
 3. To release, publish a GitHub release: `gh release create v<version> --generate-notes --repo <owner>/<name>`.

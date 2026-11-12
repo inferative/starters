@@ -30,6 +30,7 @@ The keys of this starter, beside the shared keys:
   "postgresProvider": "<provider>",
   "region": "<region>",
   "placementRegion": "aws:eu-central-1",
+  "locationHint": "weur",
   "domain": "workers.dev",
   "singleOrganization": true,
   "assistantConnection": "none",
@@ -43,7 +44,7 @@ The keys of this starter, beside the shared keys:
 | # | Phase id | Done when | Details |
 | :-- | :-- | :-- | :-- |
 | 4 | `choices` | You hold every answer of the choices table | "Phase 4: choices" |
-| 5 | `starter` | `pnpm heximon:check` exits 0, no `my-inferative-dashboard` is left in `nuxt.config.ts`, `heximon.config.ts`, `inferative.config.ts` and `package.json`, no `my-inferative-applets` is left in `heximon.config.ts` and `workers/applets/heximon.config.ts`, no `my-inferative-rooms` is left in `workers/rooms/heximon.config.ts`, and the placement of the state file is in `nuxt.config.ts` | "Phase 5: the config" |
+| 5 | `starter` | `pnpm heximon:check` exits 0, no `my-inferative-dashboard` is left in `nuxt.config.ts`, `heximon.config.ts`, `inferative.config.ts` and `package.json`, no `my-inferative-applets` is left in `heximon.config.ts` and `workers/applets/heximon.config.ts`, no `my-inferative-rooms` is left in `workers/rooms/heximon.config.ts`, and the placement and the location hint of the state file are in `nuxt.config.ts` and `heximon.config.ts` | "Phase 5: the config" |
 | 6 | `database` | `pnpm db:migrate` exits 0 against the `DATABASE_URL` of `.env` | "Phase 6: the database" |
 | 7 | `cloudflare` | The Hyperdrive id is in `heximon.config.ts` and `workers/rooms/heximon.config.ts`, caching is off, and the bucket and the queue `<name>-saga-timer-queue` exist | "Phase 7: Cloudflare" |
 | 8 | `secrets` | The secrets check shows each name as `set` in `.env` and in `.env.worker`, and the root as `same` | "Phase 8: secrets" |
@@ -85,8 +86,9 @@ default: the person chooses. Write the answers to the state file.
 | Model of the assistant | none: AI is off until an organization has a model connection | Optional. A model connection of the kind `anthropic`, `openai`, `vercel-ai-gateway`, `cloudflare-ai-gateway` or `openrouter`. The person needs an API key of that provider and a model id. It can wait until later ("Turn on the assistant" below). |
 | Capabilities | all | The modules of `server/app.module.ts` that the dashboard keeps. |
 
-Then map the database region to the placement region: "Placement" of `references/setup-cloudflare.md`. Write it to
-`placementRegion`. When the region has no row of its own, tell the person which row you used.
+Then map the database region to the placement region and the location hint: "Placement and the location hint" of
+`references/setup-cloudflare.md`. Write them to `placementRegion` and `locationHint`. When the region has no row of
+its own, tell the person which row you used.
 
 ## Phase 5: the config
 
@@ -102,6 +104,7 @@ comments:
 | `heximon.config.ts` | `cloudflare.name` | `<name>` |
 | `heximon.config.ts` | `cloudflare.resourcePrefix` | `<name>-` |
 | `heximon.config.ts` | `bucketName` under `cloudflare.r2Buckets` | `<name>-files` |
+| `heximon.config.ts` | `namespace` under `cloudflare.artifacts` | `<name>-sources` |
 | `heximon.config.ts` | `scriptName` of `APPLET_SUPERVISOR` under `cloudflare.durableObjects` | `<name>-applets` |
 | `workers/applets/heximon.config.ts` | `cloudflare.name` | `<name>-applets` |
 | `heximon.config.ts` | `scriptName` of `REALTIME_STREAM_OBJECT` under `cloudflare.durableObjects` | `<name>-rooms` |
@@ -145,6 +148,10 @@ again, so the placement lives here, never in the Cloudflare dashboard. The apple
 no database. The rooms Worker gets no placement either: a Durable Object runs where Cloudflare creates it, not with the
 placement of its Worker.
 
+**The location hint of the clock.** In `heximon.config.ts`, set `locationHint` of the `schedule` block to
+`locationHint` of the state file, in place of `"weur"`. Cloudflare creates the room of the scheduled jobs near that
+hint, and the room never moves after the first deploy. Keep `"weur"` when the state file says `weur`.
+
 **`inferative.config.ts`.**
 
 | Key | New value |
@@ -170,6 +177,7 @@ Check:
 - `grep -c 'My dashboard' inferative.config.ts` prints `0`.
 - `grep -c 'region: "<placement region>"' nuxt.config.ts` prints `1`, and `grep -c placement workers/applets/heximon.config.ts`
   prints `0`.
+- `grep -c 'locationHint: "<location hint>"' heximon.config.ts` prints `1`.
 
 ## Phase 6: the database
 
@@ -464,9 +472,11 @@ A push does not deploy. Only a published release or a manual run starts the Rele
 
 ## Phase 11: deploy
 
-The Release workflow runs eleven commands: `pnpm db:migrate`, `pnpm release:data`, `pnpm build`, `pnpm build:applets`, `pnpm build:rooms`,
-`pnpm deploy:applets`, `pnpm deploy:rooms`, `pnpm deploy:live`, `pnpm deploy:rooms:after`, `pnpm deploy:edge` and
-`pnpm deploy:bind`. A deploy by hand runs the same eleven, in the same order ("Daily work"). The edge Worker (`<name>-edge`) fronts the host: it binds the
+The Release workflow runs twelve commands: `pnpm db:migrate`, `pnpm release:data`, `pnpm build`, `pnpm build:applets`, `pnpm build:rooms`,
+`pnpm deploy:applets`, `pnpm deploy:rooms`, `pnpm deploy:live`, `pnpm deploy:rooms:after`, `pnpm deploy:edge`,
+`pnpm deploy:bind` and `pnpm release:after`. A deploy by hand runs the same twelve, in the same order ("Daily work").
+`pnpm release:after` goes last: it repairs the data that the Workers of the earlier release wrote while the new
+migrations already applied. The edge Worker (`<name>-edge`) fronts the host: it binds the
 dashboard Worker by name, so it goes after it. The dashboard Worker binds the cache of the edge Worker
 (`PUBLIC_READ_PURGE`), so the first deploy runs in three steps: `pnpm deploy:live` sees that `<name>-edge` does not
 exist and deploys the dashboard Worker without that binding, `pnpm deploy:edge` creates the edge Worker, and
@@ -616,14 +626,16 @@ The rules about secrets of `references/setup.md` apply here too: never show a va
 
 ### Change code and deploy
 
-1. Edit. After a change to a module, run `pnpm heximon:check`. Before a push, run `pnpm typecheck` and `pnpm test`.
+1. Edit. After a change to a module, run `pnpm heximon:check`. Before a push, run `pnpm fmt` to format the files, then
+   `pnpm check` (the format check, the lint, `pnpm typecheck` and `pnpm heximon:check`) and `pnpm test`. `pnpm lint`
+   runs the lint alone.
 2. Push to `main`. A push does not deploy.
 3. To deploy, publish a GitHub release: `gh release create v<version> --generate-notes --repo <owner>/<name>`.
    `.github/workflows/release.yml` runs the migrations, writes the data of the release, builds the three Workers, then deploys the applets Worker, the
-   rooms Worker, the dashboard Worker and the edge Worker, then binds the dashboard Worker to the edge Worker's cache. A
-   manual run does the same: `gh workflow run release.yml --repo <owner>/<name>`.
+   rooms Worker, the dashboard Worker and the edge Worker, then binds the dashboard Worker to the edge Worker's cache,
+   and last repairs the data that the earlier Workers wrote during the release. A manual run does the same: `gh workflow run release.yml --repo <owner>/<name>`.
 
-**A deploy by hand** runs the same eleven commands on this machine, in the same order: the dashboard Worker binds the
+**A deploy by hand** runs the same twelve commands on this machine, in the same order: the dashboard Worker binds the
 applets Worker and the rooms Worker, so they deploy first, and the edge Worker binds the dashboard Worker, so it comes
 after it. `pnpm exec wrangler whoami` must list the account of the
 dashboard, and each deploy names it:
@@ -690,7 +702,7 @@ update takes the versions of the starter of the new release:
    override of the new starter. Keep the lines that the person added.
 3. Read `README.md` of the new starter for a new Cloudflare resource or a new Worker secret. Create it before the
    deploy. Copy its `SETUP.md` over the one of the project, so that the steps match the release.
-4. Run `pnpm install`, `pnpm heximon:check`, `pnpm typecheck` and `pnpm test`.
+4. Run `pnpm install`, `pnpm fmt`, `pnpm check` and `pnpm test`. When the new starter changed `vite.config.ts`, take its file.
 5. Run `pnpm db:generate`. A package with new tables gives a new migration folder: commit it.
 6. When `pnpm heximon:check` reports a change of the durable surface, run `pnpm heximon:check --update` and commit
    `heximon.upgrade.json`. Never edit that file, and never delete it to clear an error.
@@ -795,6 +807,18 @@ empty.
 
 From then on, skip each command and each check of this file that names `workers/rooms/`, `<name>-rooms` or
 `deploy:rooms`. The dashboard Worker needs no other change: it composes the realtime module in both ways.
+
+### Read the platform settings from KV
+
+Optional. The dashboard reads its platform settings on most requests. Without a KV namespace, each new isolate of the
+Worker reads them from the database once. With the KV Instant namespace `PLATFORM_SETTINGS`, it reads them from KV,
+with no database statement. A save reaches every isolate within about 6 seconds. When KV refuses the save's write and
+its delete, the older value ends within 155 seconds of the save. The minute tick writes the value again each minute.
+
+1. Do "The platform settings namespace" of `references/setup-cloudflare.md`, under the name `<name>`.
+2. Deploy (`pnpm deploy:live`).
+
+To stop, delete the `kvNamespaces` line again and deploy. Then delete the namespace.
 
 ### Check a deployment
 

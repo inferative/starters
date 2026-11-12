@@ -19,13 +19,21 @@ import { MysqlSeoPersistence } from "@inferative/seo/persistence/mysql2";
 import { MysqlVisualEditingPersistence } from "@inferative/visual-editing/persistence/mysql2";
 import { MysqlWorkspacePersistence } from "@inferative/workspace/persistence/mysql2";
 import { DatabaseModule } from "./database.module";
+import { InboxKindRegistry } from "@inferative/base/notify";
+import { PolicyCheck } from "@inferative/base/policy";
 
 // The time-limit filter of this dialect, which the root module lists.
 export { MysqlTimeLimitFilter as HostTimeLimitFilter } from "@inferative/base/persistence/mysql2";
 
 /** The database of the site: the one connection, the migrations and the persistence module of each package. */
 export class PersistenceModule extends Module({
-  requires: [LiveEntityAnnouncer, RevisionPurgeDeliveries],
+  requires: [
+    LiveEntityAnnouncer,
+    RevisionPurgeDeliveries,
+    // Which written inbox items their recipient hears of.
+    { provide: PolicyCheck, optional: true },
+    { provide: InboxKindRegistry, optional: true }
+  ],
   imports: [
     DatabaseModule,
     MysqlMigrations,

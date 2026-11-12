@@ -37,7 +37,7 @@ The keys of this starter, beside the shared keys:
 | 5 | `env` | The check of phase 5 shows each name as `set` | "Phase 5: `.env`" |
 | 6 | `sync` | `pnpm check:manifest`, `pnpm sync:manifest --first-sync` and `pnpm sync:manifest` each exit 0 | "Phase 6: the manifest" |
 | 7 | `first-page` | `curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/` prints `200` under `pnpm dev` | "Phase 7: the first page" |
-| 8 | `build` | `pnpm typecheck` and `pnpm build` exit 0, and the built server answers `200` on `/` | "Phase 8: the build" |
+| 8 | `build` | `pnpm fmt`, then `pnpm check` and `pnpm build` exit 0, and the built server answers `200` on `/` | "Phase 8: the build" |
 | 9 | `github` | The state file names `githubOwner`, the repository `<owner>/<name>` exists, and `main` is pushed | "Phase 9: GitHub" |
 
 After phase 9, tell the person the local address and how the build runs ("Daily work").
@@ -120,7 +120,8 @@ and every other page answers `503`: check `NUXT_PUBLIC_INFERATIVE_API_BASE_URL` 
 
 ## Phase 8: the build
 
-1. Run `pnpm typecheck`. It must exit 0.
+1. Run `pnpm fmt` to format the files that the setup wrote. Then run `pnpm check`: the format check, the lint and
+   `pnpm typecheck`. It must exit 0.
 2. Run `pnpm build`. It writes a Node server to `.output/`.
 3. Start it in the background: `node --env-file=.env .output/server/index.mjs`. Wait until
    `curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/` prints `200`. Stop it.
@@ -144,6 +145,8 @@ Check: `gh repo view <owner>/<name> --json name --jq .name` prints `<name>`, and
 
 The rules about secrets of `references/setup.md` apply here too: never show a value of `.env`.
 
+- **Format, lint and check.** `pnpm fmt` formats the files (`vp fmt`), `pnpm lint` lints them (`vp lint`) and `pnpm check`
+  runs the format check, the lint and `pnpm typecheck`. Run `pnpm fmt` before `pnpm check` after you edit a file.
 - **Change the content types.** Edit `shared/site.ts`. Run `pnpm check:manifest`, then `pnpm sync:manifest`.
 - **The machine documents.** `nuxt.config.ts` turns them on (`inferativeSite: { site: { machineDocuments: true } }`):
   the sitemap, `robots.txt`, `llms.txt`, the feeds and the IndexNow key file come from the channel, and the SEO screen of

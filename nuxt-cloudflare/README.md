@@ -17,6 +17,7 @@ A push to `main` deploys a preview Worker. A published release deploys the live 
 | `server/persistence/pg/` | The Postgres setup: the connection, the config, the persistence module and `schema.ts`. |
 | `server/persistence/mysql/` | The MySQL setup. It is the same set of files as the Postgres setup. |
 | `drizzle.config.ts` | The config of `drizzle-kit`. It names the database setup in use. |
+| `vite.config.ts` | The rules of `pnpm fmt` and `pnpm lint` (Vite+). Nuxt and Vitest do not read it. |
 | `inferative.config.ts` | The values that this site changes from the package defaults. The browser draws the screens below `/admin`; the Worker still renders the site. The static assets answer each address below `/admin` with the shell file of the build, so a page document there does not start the Worker. The Worker is about 37 MiB of code (8.4 MiB with gzip, 757 modules). Cloudflare takes at most 64 MiB. |
 | `nuxt.config.ts` | The Nuxt layers, the Workers preset and the compatibility date. |
 | `heximon.config.ts` | The compiler plugins, the one cron trigger of the schedule, and the Worker name and bindings with the preview environment (`cloudflare`). The preview environment binds the `Storage` room of the live Worker. `durable.deletedClasses` names the Durable Object of the earlier response cache, which a deploy deletes. |
@@ -315,6 +316,9 @@ The workflow reads these repository secrets. A run with a missing secret fails a
 | `pnpm build` | Builds the live Worker into `.output/`. |
 | `pnpm build:preview` | Builds the preview Worker into `.output/` (`CLOUDFLARE_ENV=preview`). |
 | `pnpm typecheck` | Type-checks the Vue files and the server. |
+| `pnpm fmt` | Formats the files with Vite+ (`vp fmt`). |
+| `pnpm lint` | Lints the files with Vite+ (`vp lint`). |
+| `pnpm check` | Runs the format check, the lint, `nuxt typecheck` and `heximon check`. Run `pnpm fmt` first. |
 | `pnpm heximon:check` | Compiles the modules and reports the wiring errors. |
 | `pnpm db:generate` | Writes a migration from `schema.ts`. |
 | `pnpm db:migrate` | Applies the migrations to `DATABASE_URL` with `inferative database migrate`, each migration in a transaction of its own. |

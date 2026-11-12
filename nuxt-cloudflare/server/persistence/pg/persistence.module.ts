@@ -19,13 +19,21 @@ import { PgSeoPersistence } from "@inferative/seo/persistence/pg";
 import { PgVisualEditingPersistence } from "@inferative/visual-editing/persistence/pg";
 import { PgWorkspacePersistence } from "@inferative/workspace/persistence/pg";
 import { DatabaseModule } from "./database.module";
+import { InboxKindRegistry } from "@inferative/base/notify";
+import { PolicyCheck } from "@inferative/base/policy";
 
 // The time-limit filter of this dialect, which the root module lists.
 export { PgTimeLimitFilter as HostTimeLimitFilter } from "@inferative/base/persistence/pg";
 
 /** The database of the site: the one connection, the migrations and the persistence module of each package. */
 export class PersistenceModule extends Module({
-  requires: [LiveEntityAnnouncer, RevisionPurgeDeliveries],
+  requires: [
+    LiveEntityAnnouncer,
+    RevisionPurgeDeliveries,
+    // Which written inbox items their recipient hears of.
+    { provide: PolicyCheck, optional: true },
+    { provide: InboxKindRegistry, optional: true }
+  ],
   imports: [
     DatabaseModule,
     PgMigrations,
